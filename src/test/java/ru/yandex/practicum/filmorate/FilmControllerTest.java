@@ -64,7 +64,7 @@ public class FilmControllerTest {
         ValidationException exception = assertThrows(ValidationException.class, () -> {
             new FilmController().addFilm(validFilm);
         });
-        assert(exception.getMessage().contains("Название фильма не может быть пустым."));
+        assert (exception.getMessage().contains("Название фильма не может быть пустым."));
     }
 
     @Test
@@ -74,7 +74,7 @@ public class FilmControllerTest {
         ValidationException exception = assertThrows(ValidationException.class, () -> {
             new FilmController().addFilm(validFilm);
         });
-        assert(exception.getMessage().contains("Описание фильма не может превышать 200 символов."));
+        assert (exception.getMessage().contains("Описание фильма не может превышать 200 символов."));
     }
 
     @Test
@@ -84,7 +84,7 @@ public class FilmControllerTest {
         ValidationException exception = assertThrows(ValidationException.class, () -> {
             new FilmController().addFilm(validFilm);
         });
-        assert(exception.getMessage().contains("Дата релиза не может быть раньше 28 декабря 1895 года."));
+        assert (exception.getMessage().contains("Дата релиза не может быть раньше 28 декабря 1895 года."));
     }
 
     @Test
@@ -94,6 +94,6 @@ public class FilmControllerTest {
         ValidationException exception = assertThrows(ValidationException.class, () -> {
             new FilmController().addFilm(validFilm);
         });
-        assert(exception.getMessage().contains("Продолжительность фильма должна быть положительным числом."));
+        assert (exception.getMessage().contains("Продолжительность фильма должна быть положительным числом."));
     }
 }
