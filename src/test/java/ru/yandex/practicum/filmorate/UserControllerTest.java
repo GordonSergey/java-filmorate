@@ -62,9 +62,7 @@ public class UserControllerTest {
     @DisplayName("Ошибка при пустой электронной почте")
     void addUserWithEmptyEmailThrowsValidationException() {
         validUser.setEmail("");
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            new UserController().addUser(validUser);
-        });
+        ValidationException exception = assertThrows(ValidationException.class, () -> new UserController().addUser(validUser));
         assert(exception.getMessage().contains("Электронная почта должна содержать символ '@'."));
     }
 
@@ -72,9 +70,7 @@ public class UserControllerTest {
     @DisplayName("Ошибка при неверном формате электронной почты")
     void addUserWithInvalidEmailThrowsValidationException() {
         validUser.setEmail("invalidemail.com");
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            new UserController().addUser(validUser);
-        });
+        ValidationException exception = assertThrows(ValidationException.class, () -> new UserController().addUser(validUser));
         assert(exception.getMessage().contains("Электронная почта должна содержать символ '@'."));
     }
 
@@ -82,9 +78,7 @@ public class UserControllerTest {
     @DisplayName("Ошибка при пустом логине")
     void addUserWithEmptyLoginThrowsValidationException() {
         validUser.setLogin("");
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            new UserController().addUser(validUser);
-        });
+        ValidationException exception = assertThrows(ValidationException.class, () -> new UserController().addUser(validUser));
         assert(exception.getMessage().contains("Логин не может быть пустым и содержать пробелы."));
     }
 
@@ -92,9 +86,7 @@ public class UserControllerTest {
     @DisplayName("Ошибка при логине с пробелами")
     void addUserWithLoginContainingSpacesThrowsValidationException() {
         validUser.setLogin("invalid login");
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            new UserController().addUser(validUser);
-        });
+        ValidationException exception = assertThrows(ValidationException.class, () -> new UserController().addUser(validUser));
         assert(exception.getMessage().contains("Логин не может быть пустым и содержать пробелы."));
     }
 
@@ -125,9 +117,7 @@ public class UserControllerTest {
     @DisplayName("Ошибка при дате рождения в будущем")
     void addUserWithFutureBirthdayThrowsValidationException() {
         validUser.setBirthday(LocalDate.now().plusDays(1));
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            new UserController().addUser(validUser);
-        });
+        ValidationException exception = assertThrows(ValidationException.class, () -> new UserController().addUser(validUser));
         assert(exception.getMessage().contains("Дата рождения не может быть в будущем."));
     }
 
