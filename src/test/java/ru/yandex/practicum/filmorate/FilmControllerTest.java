@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(FilmController.class)
-public class FilmControllerTest {
+class FilmControllerTest {
 
     @Autowired
     private MockMvc mockMvc;  // Spring инжектирует этот объект
@@ -61,7 +61,9 @@ public class FilmControllerTest {
     @DisplayName("Ошибка при пустом названии фильма")
     void addFilmWithEmptyNameThrowsValidationException() {
         validFilm.setName("");
-        ValidationException exception = assertThrows(ValidationException.class, () -> new FilmController().addFilm(validFilm));
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> new FilmController().addFilm(validFilm));
+
         assert (exception.getMessage().contains("Название фильма не может быть пустым."));
     }
 
@@ -69,7 +71,9 @@ public class FilmControllerTest {
     @DisplayName("Ошибка при описании длиной более 200 символов")
     void addFilmWithLongDescriptionThrowsValidationException() {
         validFilm.setDescription("A".repeat(201));
-        ValidationException exception = assertThrows(ValidationException.class, () -> new FilmController().addFilm(validFilm));
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> new FilmController().addFilm(validFilm));
+
         assert (exception.getMessage().contains("Описание фильма не может превышать 200 символов."));
     }
 
@@ -77,7 +81,9 @@ public class FilmControllerTest {
     @DisplayName("Ошибка при дате релиза раньше 28 декабря 1895 года")
     void addFilmWithInvalidReleaseDateThrowsValidationException() {
         validFilm.setReleaseDate(LocalDate.of(1895, 12, 27));
-        ValidationException exception = assertThrows(ValidationException.class, () -> new FilmController().addFilm(validFilm));
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> new FilmController().addFilm(validFilm));
+
         assert (exception.getMessage().contains("Дата релиза не может быть раньше 28 декабря 1895 года."));
     }
 
@@ -85,7 +91,9 @@ public class FilmControllerTest {
     @DisplayName("Ошибка при неположительной продолжительности фильма")
     void addFilmWithNegativeDurationThrowsValidationException() {
         validFilm.setDuration(-100);
-        ValidationException exception = assertThrows(ValidationException.class, () -> new FilmController().addFilm(validFilm));
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> new FilmController().addFilm(validFilm));
+
         assert (exception.getMessage().contains("Продолжительность фильма должна быть положительным числом."));
     }
 }
