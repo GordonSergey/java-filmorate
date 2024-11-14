@@ -46,17 +46,15 @@ class FilmControllerTest {
                         "description": "This is a valid description.",
                         "releaseDate": "2000-01-01",
                         "duration": 120
-                    }""")
-                )
+                    }""")) // Закрывающая скобка перенесена на ту же строку, что и .content
                 .andExpect(status().isOk())
                 .andExpect(content().json("""
-            {
-                "name": "Valid Film",
-                "description": "This is a valid description.",
-                "releaseDate": "2000-01-01",
-                "duration": 120
-            }""")
-                );
+                    {
+                        "name": "Valid Film",
+                        "description": "This is a valid description.",
+                        "releaseDate": "2000-01-01",
+                        "duration": 120
+                    }""")); // Закрывающая скобка перенесена на ту же строку, что и .json
     }
 
     @Test
