@@ -1,15 +1,15 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
-
-import java.time.LocalDate;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.annotation.*;
+import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -17,46 +17,81 @@ import java.util.Optional;
 public class FilmController {
 
     private final List<Film> films = new ArrayList<>();
-    private int currentId = 1;
+    private int filmIdCounter = 1;
 
+    // Добавление фильма
     @PostMapping
-    public Film addFilm(@RequestBody @Valid Film film) {
-        validateFilm(film);
-        film.setId(currentId++);
+    public ResponseEntity<Film> createFilm(@RequestBody @Valid Film film, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            StringBuilder errorMessage = new StringBuilder("Validation failed: ");
+            for (FieldError error : bindingResult.getFieldErrors()) {
+                errorMessage.append(error.getField())
+                        .append(" - ")
+                        .append(error.getDefaultMessage())
+                        .append("; ");
+            }
+            log.error(errorMessage.toString());
+
+            // Возвращаем ResponseEntity с объектом Film и сообщением об ошибке
+            Film errorFilm = new Film();
+            errorFilm.setDescription(errorMessage.toString());  // Записываем сообщение об ошибке в поле description
+            return new ResponseEntity<>(errorFilm, HttpStatus.BAD_REQUEST);
+        }
+
+        log.info("Creating new film: {}", film.getName());
+        film.setId(filmIdCounter++);
         films.add(film);
-        log.info("Фильм добавлен: {}", film);
-        return film;
+        return new ResponseEntity<>(film, HttpStatus.CREATED);
     }
 
+    // Обновление фильма
     @PutMapping
-    public Film updateFilm(@RequestBody @Valid Film film) {
-        validateFilm(film);
-        Optional<Film> existingFilm = films.stream()
-                .filter(f -> f.getId() == film.getId())
-                .findFirst();
+    public ResponseEntity<Film> updateFilm(@RequestBody @Valid Film film, BindingResult bindingResult) {
+        if (bindingResult.hasErrors()) {
+            StringBuilder errorMessage = new StringBuilder("Validation failed: ");
+            for (FieldError error : bindingResult.getFieldErrors()) {
+                errorMessage.append(error.getField())
+                        .append(" - ")
+                        .append(error.getDefaultMessage())
+                        .append("; ");
+            }
+            log.error(errorMessage.toString());
 
-        if (existingFilm.isPresent()) {
-            films.remove(existingFilm.get());
-            films.add(film);
-            log.info("Фильм обновлён: {}", film);
-            return film;
-        } else {
-            throw new ValidationException("Фильм с таким ID не найден.");
+            // Возвращаем ResponseEntity с объектом Film и сообщением об ошибке
+            Film errorFilm = new Film();
+            errorFilm.setDescription(errorMessage.toString());  // Записываем сообщение об ошибке в поле description
+            return new ResponseEntity<>(errorFilm, HttpStatus.BAD_REQUEST);
         }
+
+        for (Film existingFilm : films) {
+            if (existingFilm.getId() == film.getId()) {
+                log.info("Updating film with ID: {}", film.getId());
+                existingFilm.setName(film.getName());
+                existingFilm.setDescription(film.getDescription());
+                existingFilm.setReleaseDate(film.getReleaseDate());
+                existingFilm.setDuration(film.getDuration());
+                return ResponseEntity.ok(existingFilm);
+            }
+        }
+        log.error("Film with ID {} not found for update", film.getId());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
-    private void validateFilm(Film film) {
-        if (film.getName() == null || film.getName().isBlank()) {
-            throw new ValidationException("Название фильма не может быть пустым.");
-        }
-        if (film.getDescription() != null && film.getDescription().length() > 200) {
-            throw new ValidationException("Описание фильма не может превышать 200 символов.");
-        }
-        if (film.getReleaseDate() == null || film.getReleaseDate().isBefore(LocalDate.of(1895, 12, 28))) {
-            throw new ValidationException("Дата релиза не может быть раньше 28 декабря 1895 года.");
-        }
-        if (film.getDuration() <= 0) {
-            throw new ValidationException("Продолжительность фильма должна быть положительным числом.");
-        }
+    // Получение всех фильмов
+    @GetMapping
+    public ResponseEntity<List<Film>> getAllFilms() {
+        log.info("Fetching all films");
+        return ResponseEntity.ok(films);
+    }
+
+    // Обработка ошибок валидации
+    @ExceptionHandler(javax.validation.ValidationException.class)
+    public ResponseEntity<Film> handleValidationException(javax.validation.ValidationException ex) {
+        log.error("Validation error: {}", ex.getMessage());
+
+        // Возвращаем ResponseEntity с объектом Film и сообщением об ошибке
+        Film errorFilm = new Film();
+        errorFilm.setDescription("Validation error: " + ex.getMessage());  // Записываем сообщение об ошибке в поле description
+        return new ResponseEntity<>(errorFilm, HttpStatus.BAD_REQUEST);
     }
 }

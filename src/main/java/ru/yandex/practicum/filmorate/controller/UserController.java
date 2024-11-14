@@ -1,15 +1,13 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
-
-import java.time.LocalDate;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Slf4j
 @RestController
@@ -17,46 +15,45 @@ import java.util.Optional;
 public class UserController {
 
     private final List<User> users = new ArrayList<>();
-    private int currentId = 1;
+    private int userIdCounter = 1;
 
+    // Создание пользователя
     @PostMapping
-    public User addUser(@RequestBody @Valid User user) {
-        validateUser(user);
-        user.setId(currentId++);
+    public ResponseEntity<User> createUser(@RequestBody @Valid User user) {
+        log.info("Creating new user: {}", user.getLogin());
+        user.setId(userIdCounter++);
         users.add(user);
-        log.info("Пользователь добавлен: {}", user);
-        return user;
+        return new ResponseEntity<>(user, HttpStatus.CREATED);
     }
 
+    // Обновление пользователя
     @PutMapping
-    public User updateUser(@RequestBody @Valid User user) {
-        validateUser(user);
-        Optional<User> existingUser = users.stream()
-                .filter(u -> u.getId() == user.getId())
-                .findFirst();
-
-        if (existingUser.isPresent()) {
-            users.remove(existingUser.get());
-            users.add(user);
-            log.info("Пользователь обновлён: {}", user);
-            return user;
-        } else {
-            throw new ValidationException("Пользователь с таким ID не найден.");
+    public ResponseEntity<User> updateUser(@RequestBody @Valid User user) {
+        for (User existingUser : users) {
+            if (existingUser.getId() == user.getId()) {
+                log.info("Updating user with ID: {}", user.getId());
+                existingUser.setEmail(user.getEmail());
+                existingUser.setLogin(user.getLogin());
+                existingUser.setName(user.getName() != null ? user.getName() : user.getLogin());
+                existingUser.setBirthday(user.getBirthday());
+                return ResponseEntity.ok(existingUser);
+            }
         }
+        log.error("User with ID {} not found for update", user.getId());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
-    private void validateUser(User user) {
-        if (user.getEmail() == null || !user.getEmail().contains("@")) {
-            throw new ValidationException("Электронная почта должна содержать символ '@'.");
-        }
-        if (user.getLogin() == null || user.getLogin().isBlank() || user.getLogin().contains(" ")) {
-            throw new ValidationException("Логин не может быть пустым и содержать пробелы.");
-        }
-        if (user.getName() == null || user.getName().isBlank()) {
-            user.setName(user.getLogin());
-        }
-        if (user.getBirthday() == null || user.getBirthday().isAfter(LocalDate.now())) {
-            throw new ValidationException("Дата рождения не может быть в будущем.");
-        }
+    // Получение всех пользователей
+    @GetMapping
+    public ResponseEntity<List<User>> getAllUsers() {
+        log.info("Fetching all users");
+        return ResponseEntity.ok(users);
+    }
+
+    // Обработка ошибок валидации
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleValidationException(IllegalArgumentException ex) {
+        log.error("Validation error: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 }
