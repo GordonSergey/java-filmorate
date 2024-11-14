@@ -42,36 +42,38 @@ public class UserControllerTest {
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                    "email": "validemail@example.com",
-                                    "login": "validlogin",
-                                    "name": "Valid Name",
-                                    "birthday": "2000-01-01"
-                                }"""))
+                            {
+                                "email": "validemail@example.com",
+                                "login": "validlogin",
+                                "name": "Valid Name",
+                                "birthday": "2000-01-01"
+                            }""")) // Скобка на той же строке
                 .andExpect(status().isOk())
                 .andExpect(content().json("""
-                        {
-                            "email": "validemail@example.com",
-                            "login": "validlogin",
-                            "name": "Valid Name",
-                            "birthday": "2000-01-01"
-                        }"""));
+                    {
+                        "email": "validemail@example.com",
+                        "login": "validlogin",
+                        "name": "Valid Name",
+                        "birthday": "2000-01-01"
+                    }"""));
     }
 
     @Test
     @DisplayName("Ошибка при пустой электронной почте")
     void addUserWithEmptyEmailThrowsValidationException() {
         validUser.setEmail("");
-        ValidationException exception = assertThrows(ValidationException.class, () -> new UserController().addUser(validUser));
-        assert(exception.getMessage().contains("Электронная почта должна содержать символ '@'."));
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> new UserController().addUser(validUser));
+        assert (exception.getMessage().contains("Электронная почта должна содержать символ '@'."));
     }
 
     @Test
     @DisplayName("Ошибка при неверном формате электронной почты")
     void addUserWithInvalidEmailThrowsValidationException() {
         validUser.setEmail("invalidemail.com");
-        ValidationException exception = assertThrows(ValidationException.class, () -> new UserController().addUser(validUser));
-        assert(exception.getMessage().contains("Электронная почта должна содержать символ '@'."));
+        ValidationException exception = assertThrows(ValidationException.class,
+                () -> new UserController().addUser(validUser));
+        assert (exception.getMessage().contains("Электронная почта должна содержать символ '@'."));
     }
 
     @Test
