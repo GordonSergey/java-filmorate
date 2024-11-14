@@ -41,20 +41,22 @@ class FilmControllerTest {
         mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {
-                                    "name": "Valid Film",
-                                    "description": "This is a valid description.",
-                                    "releaseDate": "2000-01-01",
-                                    "duration": 120
-                                }"""))
+                    {
+                        "name": "Valid Film",
+                        "description": "This is a valid description.",
+                        "releaseDate": "2000-01-01",
+                        "duration": 120
+                    }""")
+                )
                 .andExpect(status().isOk())
                 .andExpect(content().json("""
-                        {
-                            "name": "Valid Film",
-                            "description": "This is a valid description.",
-                            "releaseDate": "2000-01-01",
-                            "duration": 120
-                        }"""));
+            {
+                "name": "Valid Film",
+                "description": "This is a valid description.",
+                "releaseDate": "2000-01-01",
+                "duration": 120
+            }""")
+                );
     }
 
     @Test
