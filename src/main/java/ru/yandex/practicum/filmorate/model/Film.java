@@ -1,10 +1,10 @@
 package ru.yandex.practicum.filmorate.model;
 
 import lombok.Data;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.Positive;
-import javax.validation.constraints.Size;
-import javax.validation.constraints.PastOrPresent;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.PastOrPresent;
 import java.time.LocalDate;
 
 @Data
@@ -24,6 +24,5 @@ public class Film {
     @Positive(message = "Duration must be a positive number")
     private int duration;
 
-    // Опционально можно добавить поле для хранения сообщений об ошибках
-    private String errorMessage;  // Для более структурированного хранения ошибок
+    private String errorMessage;  // Опциональное поле для сообщений об ошибках
 }
