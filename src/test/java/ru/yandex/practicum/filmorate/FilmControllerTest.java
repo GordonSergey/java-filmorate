@@ -3,7 +3,10 @@ package ru.yandex.practicum.filmorate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 import ru.yandex.practicum.filmorate.controller.FilmController;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
@@ -11,9 +14,15 @@ import ru.yandex.practicum.filmorate.exception.ValidationException;
 import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(FilmController.class)
 public class FilmControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;  // Spring инжектирует этот объект
 
     private Film validFilm;
 
@@ -24,6 +33,28 @@ public class FilmControllerTest {
         validFilm.setDescription("This is a valid description.");
         validFilm.setReleaseDate(LocalDate.of(2000, 1, 1));
         validFilm.setDuration(120);
+    }
+
+    @Test
+    @DisplayName("Добавление корректного фильма")
+    void addValidFilm() throws Exception {
+        mockMvc.perform(post("/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "name": "Valid Film",
+                                    "description": "This is a valid description.",
+                                    "releaseDate": "2000-01-01",
+                                    "duration": 120
+                                }"""))
+                .andExpect(status().isOk())
+                .andExpect(content().json("""
+                        {
+                            "name": "Valid Film",
+                            "description": "This is a valid description.",
+                            "releaseDate": "2000-01-01",
+                            "duration": 120
+                        }"""));
     }
 
     @Test
