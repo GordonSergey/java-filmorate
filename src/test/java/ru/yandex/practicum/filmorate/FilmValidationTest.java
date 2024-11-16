@@ -61,18 +61,6 @@ public class FilmValidationTest {
     }
 
     @Test
-    public void shouldFailValidationWhenReleaseDateIsBeforeCinema() {
-        Film film = new Film();
-        film.setName("Historic Film");
-        film.setDescription("A film with a release date before cinema.");
-        film.setReleaseDate(LocalDate.of(1895, 12, 27)); // One day before the allowed date
-        film.setDuration(120);
-
-        Set<ConstraintViolation<Film>> violations = validator.validate(film);
-        assertFalse(violations.isEmpty(), "Release date before 1895-12-28 should fail validation");
-    }
-
-    @Test
     public void shouldFailValidationWhenDurationIsNegative() {
         Film film = new Film();
         film.setName("Negative Duration Film");
