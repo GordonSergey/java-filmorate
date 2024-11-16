@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -85,8 +85,8 @@ public class FilmController {
     }
 
     // Обработка ошибок валидации
-    @ExceptionHandler(javax.validation.ValidationException.class)
-    public ResponseEntity<Film> handleValidationException(javax.validation.ValidationException ex) {
+    @ExceptionHandler(jakarta.validation.ValidationException.class)
+    public ResponseEntity<Film> handleValidationException(jakarta.validation.ValidationException ex) {
         log.error("Validation error: {}", ex.getMessage());
 
         // Возвращаем ResponseEntity с объектом Film и сообщением об ошибке

@@ -36,15 +36,7 @@
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
-			<version>1.18.24</version>
 			<scope>provided</scope>
-		</dependency>
-
-		<!-- SLF4J for logging -->
-		<dependency>
-			<groupId>org.slf4j</groupId>
-			<artifactId>slf4j-api</artifactId>
-			<version>1.7.32</version>
 		</dependency>
 
 		<!-- Spring Boot Test (For unit tests) -->
