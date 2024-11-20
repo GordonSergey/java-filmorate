@@ -1,29 +1,24 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import jakarta.validation.ValidationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.service.DataValidation;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-@SuppressWarnings("unused")
 @RestController
 @RequestMapping("/films")
 public class FilmController {
 
-    private final DataValidation validationService;
     private final List<Film> films = new ArrayList<>();
     private int filmIdCounter = 1;
-
-    @Autowired
-    public FilmController(DataValidation validationService) {
-        this.validationService = validationService;
-    }
+    private static final LocalDate CINEMA_START_DATE = LocalDate.of(1895, 12, 28);
 
     @GetMapping
     public ResponseEntity<List<Film>> getAllFilms() {
@@ -31,18 +26,23 @@ public class FilmController {
     }
 
     @PostMapping
-    public ResponseEntity<Film> createFilm(@RequestBody Film film) {
-        validationService.validate(film);
+    public ResponseEntity<Film> createFilm(@Valid @RequestBody Film film) {
+        // Проверка даты выхода фильма
+        if (film.getReleaseDate().isBefore(CINEMA_START_DATE)) {
+            throw new ValidationException("Release date cannot be earlier than December 28, 1895.");
+        }
 
         film.setId(filmIdCounter++);
         films.add(film);
-
         return new ResponseEntity<>(film, HttpStatus.CREATED);
     }
 
     @PutMapping
-    public ResponseEntity<?> updateFilm(@RequestBody Film film) {
-        validationService.validate(film);
+    public ResponseEntity<?> updateFilm(@Valid @RequestBody Film film) {
+        // Проверка даты выхода фильма
+        if (film.getReleaseDate().isBefore(CINEMA_START_DATE)) {
+            throw new ValidationException("Release date cannot be earlier than December 28, 1895.");
+        }
 
         for (Film existingFilm : films) {
             if (existingFilm.getId() == film.getId()) {
