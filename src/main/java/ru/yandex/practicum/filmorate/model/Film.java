@@ -10,7 +10,7 @@ public class Film {
 
     private int id;
 
-    @NotEmpty(message = "Name cannot be empty")
+    @NotEmpty(message = "Film name cannot be empty")
     private String name;
 
     @NotEmpty(message = "Description cannot be empty")
