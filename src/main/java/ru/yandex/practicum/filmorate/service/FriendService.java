@@ -31,8 +31,7 @@ public class FriendService {
         return userStorage.getCommonFriends(userId, otherId);
     }
 
-    // Проверка существования пользователя
     public boolean isUserExist(int userId) {
-        return userStorage.getUserById(userId).isPresent();  // Проверяем, существует ли пользователь
+        return userStorage.getUserById(userId).isPresent();
     }
 }

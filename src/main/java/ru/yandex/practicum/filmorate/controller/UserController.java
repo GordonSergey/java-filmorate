@@ -25,13 +25,11 @@ public class UserController {
     private final UserService userService;
     private final FriendService friendService;
 
-    // Конструктор с инжекцией обоих сервисов
     public UserController(UserService userService, FriendService friendService) {
         this.userService = userService;
         this.friendService = friendService;
     }
 
-    // Добавить пользователя
     @PostMapping
     public ResponseEntity<?> addUser(@RequestBody @Valid User user) {
         try {
@@ -59,7 +57,6 @@ public class UserController {
         }
     }
 
-    // Обновить пользователя
     @PutMapping
     public ResponseEntity<?> updateUser(@Valid @RequestBody User user) {
         log.info("Updating user: {}", user);
@@ -79,7 +76,6 @@ public class UserController {
         }
     }
 
-    // Получить пользователя
     @GetMapping("/{userId}")
     public ResponseEntity<?> getUser(@PathVariable @Positive int userId) {
         return userService.getUserById(userId)
@@ -87,7 +83,6 @@ public class UserController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).body((User) Map.of("error", "User not found")));
     }
 
-    // Добавить друга
     @PutMapping("/{userId}/friends/{friendId}")
     public ResponseEntity<?> addFriend(@PathVariable @Positive int userId, @PathVariable @Positive int friendId) {
         if (!friendService.isUserExist(userId) || !friendService.isUserExist(friendId)) {
@@ -98,7 +93,6 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    // Удалить друга
     @DeleteMapping("/{userId}/friends/{friendId}")
     public ResponseEntity<?> removeFriend(@PathVariable @Positive int userId, @PathVariable @Positive int friendId) {
         if (!friendService.isUserExist(userId) || !friendService.isUserExist(friendId)) {
@@ -109,7 +103,6 @@ public class UserController {
         return ResponseEntity.noContent().build();
     }
 
-    // Получить список друзей
     @GetMapping("/{userId}/friends")
     public ResponseEntity<?> getFriends(@PathVariable @Positive int userId) {
         if (!friendService.isUserExist(userId)) {
@@ -120,7 +113,6 @@ public class UserController {
         return ResponseEntity.ok(friends);
     }
 
-    // Получить общих друзей
     @GetMapping("/{userId}/friends/common/{otherId}")
     public ResponseEntity<?> getCommonFriends(@PathVariable @Positive int userId, @PathVariable @Positive int otherId) {
         if (!friendService.isUserExist(userId) || !friendService.isUserExist(otherId)) {

@@ -17,8 +17,7 @@ import java.util.NoSuchElementException;
 @RequestMapping("/films")
 public class FilmController {
 
-    private static final Logger log = LoggerFactory.getLogger(FilmController.class); // Логгер
-
+    private static final Logger log = LoggerFactory.getLogger(FilmController.class);
     private final FilmService filmService;
 
     public FilmController(FilmService filmService) {
@@ -65,7 +64,7 @@ public class FilmController {
     public ResponseEntity<List<Film>> getAllFilms() {
         List<Film> films = filmService.getAllFilms();
         if (films.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build(); // Обработка пустого списка
+            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
         }
         return ResponseEntity.ok(films);
     }
