@@ -4,6 +4,7 @@ import jakarta.validation.constraints.*;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 public class Film {
@@ -23,4 +24,10 @@ public class Film {
 
     @Positive(message = "Duration must be a positive number")
     private int duration;
+
+    @NotNull(message = "Genres cannot be null")
+    private List<Genre> genres;
+
+    @NotNull(message = "MPA rating cannot be null")
+    private MpaRating mpaRating;
 }
