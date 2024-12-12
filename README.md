@@ -10,7 +10,7 @@ Template repository for the Filmorate project.
 - Рейтинги
 - Связи между пользователями
 
-![Диаграмма базы данных](C:\Users\gordo\IdeaProjects\java-filmorate\images\diagramfilmorate.png)
+![Диаграмма базы данных](https://github.com/GordonSergey/java-filmorate/blob/main/images/diagramfilmorate.png)
 
 ## Примеры запросов
 
