@@ -84,7 +84,20 @@
 		<dependency>
 			<groupId>com.h2database</groupId>
 			<artifactId>h2</artifactId>
+			<version>2.2.224</version> <!-- Укажите последнюю стабильную версию -->
 			<scope>runtime</scope>
+		</dependency>
+
+		<!-- Spring Boot Starter JDBC -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-jdbc</artifactId>
+		</dependency>
+
+		<!-- Spring Data JPA -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
 		<!-- Checkstyle -->
