@@ -17,9 +17,15 @@ public interface UserStorage {
 
     void addFriend(int userId, int friendId);
 
+    void confirmedFriend(int userId, int friendId);
+
+    Optional<String> getFriendshipStatus(int userId, int friendId);
+
     void removeFriend(int userId, int friendId);
 
     List<User> getFriends(int userId);
 
-    List<User> getCommonFriends(int userId, int otherId);
+    boolean existsUserById(int id);
+
+    boolean existsFriendByIds(int userId, int friendId);
 }
