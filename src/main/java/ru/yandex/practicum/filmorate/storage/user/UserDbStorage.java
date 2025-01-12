@@ -72,7 +72,7 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
     @Override
     public void confirmedFriend(int userId, int friendId) {
         String query = """
-                UPDATE friends 
+                UPDATE friends
                 SET status = ? WHERE user_id = ? AND friend_id = ?
                 """;
         insert(query, FriendshipStatus.CONFIRMED.toString(), userId, friendId);

@@ -30,13 +30,13 @@ public class GenreDbStorage extends BaseDbStorage<Genre> {
 
     public List<Genre> getGenresByFilmId(long id) {
         String query = """
-                SELECT 
+                SELECT
                     g.id,
                     g.name
-                FROM 
+                FROM
                     film_genres fg
                 INNER JOIN genres g ON fg.genre_id = g.id
-                WHERE 
+                WHERE
                     fg.film_id = ?
                 """;
         return findMany(query, id);

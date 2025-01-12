@@ -93,6 +93,12 @@
 			<artifactId>spring-boot-starter-jdbc</artifactId>
 		</dependency>
 
+		<!-- Зависимость для Spring Boot JPA -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+		</dependency>
+
 		<!-- Checkstyle -->
 		<dependency>
 			<groupId>com.puppycrawl.tools</groupId>
