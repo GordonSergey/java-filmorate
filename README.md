@@ -12,7 +12,7 @@ Template repository for the Filmorate project.
 
 ![Диаграмма базы данных](https://github.com/GordonSergey/java-filmorate/blob/main/images/diagramfilmorate.png)
 
-### Примеры запросов
+## Примеры запросов
 
 1. **Получить все фильмы**:
 
