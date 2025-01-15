@@ -1,30 +1,43 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.genre.GenreDbStorage;
+import ru.yandex.practicum.filmorate.storage.like.LikeDbStorage;
+import ru.yandex.practicum.filmorate.storage.mpa.MpaDbStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.time.LocalDate;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class FilmService {
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
-    private final Map<Integer, Set<Integer>> filmLikes = new ConcurrentHashMap<>();
-
-    public FilmService(FilmStorage filmStorage, UserStorage userStorage) {
-        this.filmStorage = filmStorage;
-        this.userStorage = userStorage;
-    }
+    private final GenreDbStorage genreDbStorage;
+    private final LikeDbStorage likeDbStorage;
+    private final MpaDbStorage mpaDbStorage;
 
     public Film addFilm(Film film) {
         validateFilm(film);
+        film.setGenres(removeDuplicateGenres(film.getGenres()));
+        List<Integer> ids = film.getGenres()
+                .stream()
+                .map(Genre::getId)
+                .toList();
+        if (!genreDbStorage.existsGenresByIds(ids)) {
+            throw new IllegalArgumentException("Genre id not exists");
+        }
+        if (!mpaDbStorage.existsMpaById(film.getMpa().getId())) {
+            throw new IllegalArgumentException("Mpa id not exists");
+        }
         log.info("Adding film: {}", film);
         return filmStorage.addFilm(film);
     }
@@ -56,29 +69,26 @@ public class FilmService {
                     log.warn("User with ID {} not found.", userId);
                     return new NoSuchElementException("User with ID " + userId + " not found.");
                 });
-        filmLikes.computeIfAbsent(filmId, k -> new HashSet<>()).add(userId);
+        filmStorage.addLike(filmId, userId);
         log.info("Like added successfully to film ID: {} by user ID: {}", filmId, userId);
     }
 
     public void removeLike(int filmId, int userId) {
         log.info("Removing like from film ID: {} by user ID: {}", filmId, userId);
         getFilmById(filmId);
-        Set<Integer> likes = filmLikes.getOrDefault(filmId, new HashSet<>());
-        if (!likes.remove(userId)) {
+        if (!likeDbStorage.existsLike(filmId, userId)) {
             log.warn("User with ID {} has not liked film ID: {}", userId, filmId);
             throw new NoSuchElementException("User with ID " + userId + " has not liked this film.");
         }
+        filmStorage.removeLike(filmId, userId);
         log.info("Like successfully removed from film ID: {} by user ID: {}", filmId, userId);
     }
 
     public List<Film> getPopularFilms(int count) {
-        return filmLikes.entrySet().stream()
-                .sorted(Comparator.<Map.Entry<Integer, Set<Integer>>>comparingInt(entry -> entry.getValue().size())
-                        .reversed()
-                        .thenComparingInt(Map.Entry::getKey))
+        return filmStorage.getAllFilms().stream()
+                .sorted()
                 .limit(count)
-                .map(entry -> getFilmById(entry.getKey()))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void validateFilm(Film film) {
@@ -99,5 +109,11 @@ public class FilmService {
             throw new IllegalArgumentException("Duration must be positive.");
         }
         log.info("Film validation successful for film: {}", film);
+    }
+
+    private List<Genre> removeDuplicateGenres(List<Genre> genres) {
+        return genres.stream()
+                .distinct()
+                .toList();
     }
 }
