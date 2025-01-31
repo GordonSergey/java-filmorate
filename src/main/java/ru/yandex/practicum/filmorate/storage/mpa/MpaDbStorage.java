@@ -40,5 +40,4 @@ public class MpaDbStorage extends BaseDbStorage<Mpa> {
         Integer count = jdbcTemplate.queryForObject(query, Integer.class, id);
         return count != null && count > 0;
     }
-
 }
