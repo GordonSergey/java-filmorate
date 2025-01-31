@@ -96,10 +96,15 @@ public class FilmService {
         return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
 
-    public List<Film> getPopularFilms(int count) {
-        return filmStorage.getAllFilms().stream()
+    public List<Film> getPopularFilms(int limit, long genreId, int year) {
+        if (limit == 0) {
+            return filmStorage.getPopularsFilms(genreId, year).stream()
+                    .sorted()
+                    .toList();
+        }
+        return filmStorage.getPopularsFilms(genreId, year).stream()
                 .sorted()
-                .limit(count)
+                .limit(limit)
                 .toList();
     }
 

@@ -33,9 +33,9 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
     @Override
     public Film addFilm(Film film) {
         String query = """
-            INSERT INTO films (name, description, release_date, duration, rating_id)
-            VALUES (?, ?, ?, ?, ?)
-            """;
+                INSERT INTO films (name, description, release_date, duration, rating_id)
+                VALUES (?, ?, ?, ?, ?)
+                """;
 
         int filmId = insert(query, film.getName(), film.getDescription(), film.getReleaseDate(), film.getDuration(),
                 film.getMpa().getId());
@@ -43,9 +43,9 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
         if (film.getGenres() != null && !film.getGenres().isEmpty()) {
             String insertGenresSql = """
-                INSERT INTO film_genres (film_id, genre_id)
-                VALUES (?, ?)
-                """;
+                    INSERT INTO film_genres (film_id, genre_id)
+                    VALUES (?, ?)
+                    """;
 
             List<Object[]> batchParams = film.getGenres().stream()
                     .map(genre -> new Object[]{filmId, genre.getId()})
@@ -56,9 +56,9 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
         if (film.getDirectors() != null && !film.getDirectors().isEmpty()) {
             String insertDirectorsSql = """
-                INSERT INTO film_directors (film_id, director_id)
-                VALUES (?, ?)
-                """;
+                    INSERT INTO film_directors (film_id, director_id)
+                    VALUES (?, ?)
+                    """;
 
             List<Object[]> batchParams = film.getDirectors().stream()
                     .map(director -> new Object[]{filmId, director.getId()})
@@ -72,9 +72,9 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     public Film updateFilm(Film film) {
         String query = """
-        UPDATE films
-        SET name = ?, description = ?, release_date = ?, duration = ?, rating_id = ?
-        WHERE id = ?""";
+                UPDATE films
+                SET name = ?, description = ?, release_date = ?, duration = ?, rating_id = ?
+                WHERE id = ?""";
 
         int rowsAffected = update(query, film.getName(), film.getDescription(), film.getReleaseDate(),
                 film.getDuration(), film.getMpa() != null ? film.getMpa().getId() : null, film.getId());
@@ -99,15 +99,15 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     public Optional<Film> getFilmById(int id) {
         String sql = """
-    SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
-           r.id AS rating_id, r.name AS rating_name,
-           g.id AS genre_id, g.name AS genre_name
-    FROM films f
-    LEFT JOIN ratings r ON f.rating_id = r.id
-    LEFT JOIN film_genres fg ON f.id = fg.film_id
-    LEFT JOIN genres g ON fg.genre_id = g.id
-    WHERE f.id = ?
-    """;
+                SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
+                       r.id AS rating_id, r.name AS rating_name,
+                       g.id AS genre_id, g.name AS genre_name
+                FROM films f
+                LEFT JOIN ratings r ON f.rating_id = r.id
+                LEFT JOIN film_genres fg ON f.id = fg.film_id
+                LEFT JOIN genres g ON fg.genre_id = g.id
+                WHERE f.id = ?
+                """;
 
         Optional<Film> film = jdbcTemplate.query(sql, new FilmWithGenresExtractor(), id)
                 .stream().findFirst();
@@ -120,18 +120,18 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
     @Override
     public List<Film> getAllFilms() {
         String query = """
-             SELECT
-                   f.id AS film_id,
-                   f.name AS film_name,
-                   f.description,
-                   f.release_date,
-                   f.duration,
-                   r.id AS rating_id,
-                   r.name AS rating_name
-            FROM
-                   films f
-            LEFT JOIN ratings r ON f.rating_id = r.id;
-            """;
+                 SELECT
+                       f.id AS film_id,
+                       f.name AS film_name,
+                       f.description,
+                       f.release_date,
+                       f.duration,
+                       r.id AS rating_id,
+                       r.name AS rating_name
+                FROM
+                       films f
+                LEFT JOIN ratings r ON f.rating_id = r.id;
+                """;
 
         List<Film> films = findMany(query);
 
@@ -152,30 +152,31 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         String orderBy = switch (sortBy) {
             case "year" -> "f.release_date";
             case "likes" -> "(SELECT COUNT(*) FROM likes WHERE film_id = f.id) DESC";
-            default -> throw new IllegalArgumentException("Некорректный параметр sortBy. Используйте 'year' или 'likes'.");
+            default ->
+                    throw new IllegalArgumentException("Некорректный параметр sortBy. Используйте 'year' или 'likes'.");
         };
 
         String query = """
-        SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
-               r.id AS rating_id, r.name AS rating_name,
-               d.id AS director_id, d.name AS director_name
-        FROM films f
-        LEFT JOIN ratings r ON f.rating_id = r.id
-        LEFT JOIN film_directors fd ON f.id = fd.film_id
-        LEFT JOIN directors d ON fd.director_id = d.id
-        WHERE fd.director_id = ?
-        ORDER BY %s
-    """.formatted(orderBy);
+                    SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
+                           r.id AS rating_id, r.name AS rating_name,
+                           d.id AS director_id, d.name AS director_name
+                    FROM films f
+                    LEFT JOIN ratings r ON f.rating_id = r.id
+                    LEFT JOIN film_directors fd ON f.id = fd.film_id
+                    LEFT JOIN directors d ON fd.director_id = d.id
+                    WHERE fd.director_id = ?
+                    ORDER BY %s
+                """.formatted(orderBy);
 
         return jdbcTemplate.query(query, new FilmWithDirectorsExtractor(), directorId);
     }
 
     private Map<Integer, List<Director>> getFilmsDirectors() {
         String sql = """
-        SELECT fd.film_id, d.id, d.name
-        FROM film_directors fd
-        JOIN directors d ON fd.director_id = d.id
-    """;
+                    SELECT fd.film_id, d.id, d.name
+                    FROM film_directors fd
+                    JOIN directors d ON fd.director_id = d.id
+                """;
 
         Map<Integer, List<Director>> filmsDirectors = new HashMap<>();
 
@@ -192,11 +193,11 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         if (films.isEmpty()) return;
 
         String sql = """
-        SELECT fg.film_id, g.id, g.name
-        FROM film_genres fg
-        JOIN genres g ON fg.genre_id = g.id
-        WHERE fg.film_id IN (%s)
-    """.formatted(films.stream().map(f -> "?").collect(Collectors.joining(",")));
+                    SELECT fg.film_id, g.id, g.name
+                    FROM film_genres fg
+                    JOIN genres g ON fg.genre_id = g.id
+                    WHERE fg.film_id IN (%s)
+                """.formatted(films.stream().map(f -> "?").collect(Collectors.joining(",")));
 
         Map<Integer, Film> filmMap = films.stream()
                 .collect(Collectors.toMap(Film::getId, f -> f));
@@ -224,6 +225,48 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
                 DELETE FROM likes
                 WHERE user_id = ? AND film_id = ?""";
         delete(query, userId, filmId);
+    }
+
+
+    @Override
+    public List<Film> getPopularsFilms(long genreId, int year) {
+        String query = """
+                 SELECT
+                       f.id AS film_id,
+                       f.name AS film_name,
+                       f.description,
+                       f.release_date,
+                       f.duration,
+                       r.id AS rating_id,
+                       r.name AS rating_name
+                FROM
+                       films f
+                LEFT JOIN ratings r ON f.rating_id = r.id
+                """;
+        List<Film> films;
+        if (genreId != 0 && year != 0) {
+            query = String.format(query + "JOIN film_genres fg ON fg.film_id = f.id " +
+                    "WHERE gf.genre_id = ? " +
+                    "AND YEAR(release_date) = ?;");
+            films = findMany(query, genreId, year);
+        } else if (genreId != 0 && year == 0) {
+            query = String.format(query + "JOIN film_genres fg ON fg.film_id = f.id " +
+                    "WHERE gf.genre_id = ?;");
+            films = findMany(query, genreId);
+        } else if (genreId == 0 && year != 0) {
+            query = String.format(query + "WHERE YEAR(release_date) = ?;");
+            films = findMany(query, year);
+        } else {
+            films = findMany(query);
+        }
+
+        Map<Integer, List<Genre>> filmsGenres = getFilmsGenres();
+        Map<Integer, List<Integer>> filmsLikes = getFilmsLikes();
+        for (Film film : films) {
+            film.getGenres().addAll(filmsGenres.getOrDefault(film.getId(), List.of()));
+            film.getLikes().addAll(filmsLikes.getOrDefault(film.getId(), List.of()));
+        }
+        return films;
     }
 
     private Map<Integer, List<Genre>> getFilmsGenres() {
