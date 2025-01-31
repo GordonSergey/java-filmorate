@@ -23,5 +23,4 @@ public class LikeDbStorage extends BaseDbStorage<Map<Long, Integer>> {
         Integer count = jdbcTemplate.queryForObject(query, Integer.class, userId, filmId);
         return count != null && count > 0;
     }
-
 }

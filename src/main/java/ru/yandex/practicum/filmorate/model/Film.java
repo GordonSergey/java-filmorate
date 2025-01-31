@@ -22,6 +22,8 @@ public class Film implements Comparable<Film> {
 
     private int id;
 
+    private List<Director> directors = new ArrayList<>();
+
     @NotEmpty(message = "Film name cannot be empty")
     private String name;
 
@@ -51,5 +53,20 @@ public class Film implements Comparable<Film> {
             return likeComparison;
         }
         return Long.compare(this.getId(), o.getId());
+    }
+
+    public List<Director> getDirectors() {
+        if (directors == null) {
+            directors = new ArrayList<>();
+        }
+        return directors;
+    }
+
+    public void setDirectors(List<Director> directors) {
+        if (directors == null) {
+            this.directors = new ArrayList<>();
+        } else {
+            this.directors = directors;
+        }
     }
 }

@@ -1,17 +1,23 @@
 package ru.yandex.practicum.filmorate.storage;
 
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 
 import java.sql.PreparedStatement;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 @RequiredArgsConstructor
 public class BaseDbStorage<T> {
+
+    private static final Logger log = LoggerFactory.getLogger(BaseDbStorage.class);
+
     protected final JdbcTemplate jdbcTemplate;
     protected final RowMapper<T> mapper;
 
@@ -33,13 +39,15 @@ public class BaseDbStorage<T> {
         return rows > 0;
     }
 
-    protected boolean update(String query, Object... params) {
+    protected int update(String query, Object... params) {
+        log.info("Executing UPDATE query: {}", query);
+        log.info("With parameters: {}", Arrays.toString(params));
+
         int rows = jdbcTemplate.update(query, params);
         if (rows == 0) {
-            throw new RuntimeException("Error");
-        } else {
-            return true;
+            log.error("Update failed, no rows affected. Query: {}, Params: {}", query, params);
         }
+        return rows;
     }
 
     protected int insert(String query, Object... params) {
