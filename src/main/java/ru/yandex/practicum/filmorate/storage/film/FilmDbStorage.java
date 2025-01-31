@@ -172,7 +172,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     private Map<Integer, List<Director>> getFilmsDirectors() {
         String sql = """
-        SELECT fd.film_id, d.id, d.name 
+        SELECT fd.film_id, d.id, d.name
         FROM film_directors fd
         JOIN directors d ON fd.director_id = d.id
     """;
