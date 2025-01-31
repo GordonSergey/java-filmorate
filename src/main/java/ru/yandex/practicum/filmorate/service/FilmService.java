@@ -2,6 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
@@ -19,6 +20,7 @@ import java.util.NoSuchElementException;
 @Service
 @RequiredArgsConstructor
 public class FilmService {
+    private final JdbcTemplate jdbcTemplate;
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
     private final GenreDbStorage genreDbStorage;
@@ -33,18 +35,24 @@ public class FilmService {
                 .map(Genre::getId)
                 .toList();
         if (!genreDbStorage.existsGenresByIds(ids)) {
-            throw new IllegalArgumentException("Genre id not exists");
+            throw new NoSuchElementException("Genre id not exists");
         }
         if (!mpaDbStorage.existsMpaById(film.getMpa().getId())) {
-            throw new IllegalArgumentException("Mpa id not exists");
+            throw new NoSuchElementException("Mpa id not exists");
         }
         log.info("Adding film: {}", film);
         return filmStorage.addFilm(film);
     }
 
     public Film updateFilm(Film film) {
-        getFilmById(film.getId());
+        Film existingFilm = getFilmById(film.getId());
+
         validateFilm(film);
+
+        if (film.getDirectors() == null || film.getDirectors().isEmpty()) {
+            film.setDirectors(existingFilm.getDirectors());
+        }
+
         log.info("Updating film: {}", film);
         return filmStorage.updateFilm(film);
     }
@@ -82,6 +90,10 @@ public class FilmService {
         }
         filmStorage.removeLike(filmId, userId);
         log.info("Like successfully removed from film ID: {} by user ID: {}", filmId, userId);
+    }
+
+    public List<Film> getFilmsByDirector(int directorId, String sortBy) {
+        return filmStorage.getFilmsByDirector(directorId, sortBy);
     }
 
     public List<Film> getPopularFilms(int count) {
