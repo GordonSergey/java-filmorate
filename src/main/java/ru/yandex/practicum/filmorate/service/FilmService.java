@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.mapper.FilmWithGenresExtractor;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
@@ -40,7 +41,6 @@ public class FilmService {
         if (!mpaDbStorage.existsMpaById(film.getMpa().getId())) {
             throw new NoSuchElementException("Mpa id not exists");
         }
-        log.info("Adding film: {}", film);
         return filmStorage.addFilm(film);
     }
 
@@ -53,7 +53,6 @@ public class FilmService {
             film.setDirectors(existingFilm.getDirectors());
         }
 
-        log.info("Updating film: {}", film);
         return filmStorage.updateFilm(film);
     }
 
@@ -66,10 +65,7 @@ public class FilmService {
 
     public Film getFilmById(int id) {
         return filmStorage.getFilmById(id)
-                .orElseThrow(() -> {
-                    log.warn("Film with ID {} not found.", id);
-                    return new NoSuchElementException("Film with ID " + id + " not found.");
-                });
+                .orElseThrow(() -> new NoSuchElementException("Film with ID " + id + " not found."));
     }
 
     public List<Film> getAllFilms() {
@@ -77,30 +73,50 @@ public class FilmService {
     }
 
     public void addLike(int filmId, int userId) {
-        log.info("Adding like to film ID: {} by user ID: {}", filmId, userId);
         getFilmById(filmId);
         userStorage.getUserById(userId)
-                .orElseThrow(() -> {
-                    log.warn("User with ID {} not found.", userId);
-                    return new NoSuchElementException("User with ID " + userId + " not found.");
-                });
+                .orElseThrow(() -> new NoSuchElementException("User with ID " + userId + " not found."));
         filmStorage.addLike(filmId, userId);
-        log.info("Like added successfully to film ID: {} by user ID: {}", filmId, userId);
     }
 
     public void removeLike(int filmId, int userId) {
-        log.info("Removing like from film ID: {} by user ID: {}", filmId, userId);
         getFilmById(filmId);
         if (!likeDbStorage.existsLike(filmId, userId)) {
-            log.warn("User with ID {} has not liked film ID: {}", userId, filmId);
             throw new NoSuchElementException("User with ID " + userId + " has not liked this film.");
         }
         filmStorage.removeLike(filmId, userId);
-        log.info("Like successfully removed from film ID: {} by user ID: {}", filmId, userId);
     }
 
     public List<Film> getFilmsByDirector(int directorId, String sortBy) {
         return filmStorage.getFilmsByDirector(directorId, sortBy);
+    }
+
+    public List<Film> getCommonFilms(int userId, int friendId) {
+        userStorage.getUserById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User with ID " + userId + " not found."));
+        userStorage.getUserById(friendId)
+                .orElseThrow(() -> new NoSuchElementException("User with ID " + friendId + " not found."));
+
+        String query = """
+    SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
+           r.id AS rating_id, r.name AS rating_name,
+           g.id AS genre_id, g.name AS genre_name,
+           (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id) AS likes_count
+    FROM films f
+    JOIN likes l1 ON f.id = l1.film_id
+    JOIN likes l2 ON f.id = l2.film_id
+    LEFT JOIN ratings r ON f.rating_id = r.id
+    LEFT JOIN film_genres fg ON f.id = fg.film_id
+    LEFT JOIN genres g ON fg.genre_id = g.id
+    WHERE l1.user_id = ? AND l2.user_id = ?
+    ORDER BY likes_count DESC;
+    """;
+
+        try {
+            return jdbcTemplate.query(query, new FilmWithGenresExtractor(), userId, friendId);
+        } catch (Exception e) {
+            throw new RuntimeException("Unexpected database error occurred while fetching common films.");
+        }
     }
 
     public List<Film> getPopularFilms(int limit, long genreId, int year) {
@@ -122,22 +138,17 @@ public class FilmService {
 
     private void validateFilm(Film film) {
         if (film.getName() == null || film.getName().trim().isEmpty()) {
-            log.error("Validation failed: Film name is empty.");
             throw new IllegalArgumentException("Film name cannot be empty.");
         }
         if (film.getDescription() != null && film.getDescription().length() > 200) {
-            log.error("Validation failed: Film description exceeds 200 characters.");
             throw new IllegalArgumentException("Description is too long (max 200 characters).");
         }
         if (film.getReleaseDate() != null && film.getReleaseDate().isBefore(LocalDate.of(1900, 1, 1))) {
-            log.error("Validation failed: Release date is before 1900.");
             throw new IllegalArgumentException("Release date must not be before 1900.");
         }
         if (film.getDuration() <= 0) {
-            log.error("Validation failed: Film duration is non-positive.");
             throw new IllegalArgumentException("Duration must be positive.");
         }
-        log.info("Film validation successful for film: {}", film);
     }
 
     private List<Genre> removeDuplicateGenres(List<Genre> genres) {

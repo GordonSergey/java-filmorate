@@ -36,7 +36,7 @@ public class FilmWithGenresExtractor implements ResultSetExtractor<List<Film>> {
             });
 
             int genreId = rs.getInt("genre_id");
-            if (genreId != 0) {
+            if (!rs.wasNull()) {
                 Genre genre = new Genre(genreId, rs.getString("genre_name"));
                 if (!film.getGenres().contains(genre)) {
                     film.getGenres().add(genre);
