@@ -1,8 +1,6 @@
 package ru.yandex.practicum.filmorate.service;
 
 import jakarta.validation.ValidationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
@@ -15,7 +13,6 @@ import java.util.Optional;
 @Service
 public class UserService {
 
-    private static final Logger log = LoggerFactory.getLogger(UserService.class);
     private final UserStorage userStorage;
 
     public UserService(UserStorage userStorage) {
@@ -23,23 +20,19 @@ public class UserService {
     }
 
     public User addUser(User user) {
-        log.info("Adding new user: {}", user);
         validateUser(user);
         return userStorage.addUser(user);
     }
 
     public List<User> getAllUsers() {
-        log.info("Fetching all users.");
         return userStorage.getAllUsers();
     }
 
     public User updateUser(User user) {
-        log.info("Updating user: {}", user);
         validateUser(user);
 
         Optional<User> existingUser = userStorage.getUserById(user.getId());
         if (existingUser.isEmpty()) {
-            log.warn("User with ID {} not found.", user.getId());
             throw new NoSuchElementException("User with ID " + user.getId() + " not found.");
         }
 
