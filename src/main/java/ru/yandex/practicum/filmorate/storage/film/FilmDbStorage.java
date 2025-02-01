@@ -1,8 +1,7 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
 import jakarta.transaction.Transactional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -17,18 +16,22 @@ import ru.yandex.practicum.filmorate.storage.genre.GenreDbStorage;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Repository
 @Transactional
 public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
-    private static final Logger log = LoggerFactory.getLogger(FilmDbStorage.class);
-
     private final GenreDbStorage genreDbStorage;
+    private final JdbcTemplate jdbcTemplate;
+    private final RowMapper<Film> filmRowMapper;
 
-    public FilmDbStorage(JdbcTemplate jdbcTemplate, RowMapper<Film> mapper, GenreDbStorage genreDbStorage) {
-        super(jdbcTemplate, mapper);
+    public FilmDbStorage(JdbcTemplate jdbcTemplate, RowMapper<Film> filmRowMapper, GenreDbStorage genreDbStorage) {
+        super(jdbcTemplate, filmRowMapper);
+        this.jdbcTemplate = jdbcTemplate;
+        this.filmRowMapper = filmRowMapper;
         this.genreDbStorage = genreDbStorage;
     }
+
 
     @Override
     public Film addFilm(Film film) {
@@ -287,6 +290,76 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
             film.getGenres().addAll(filmsGenres.getOrDefault(film.getId(), List.of()));
             film.getLikes().addAll(filmsLikes.getOrDefault(film.getId(), List.of()));
         }
+        return films;
+    }
+
+    @Override
+    public List<Film> searchFilms(String query, String by) {
+        log.info("Searching for films: query='{}', by='{}'", query, by);
+
+        if (by == null || by.trim().isEmpty()) {
+            log.warn("The 'by' parameter is empty or missing. Returning an empty list.");
+            return Collections.emptyList();
+        }
+
+        Set<String> allowedParams = Set.of("title", "director");
+
+        Set<String> requestParams = Arrays.stream(by.split(","))
+                .map(String::trim)
+                .filter(param -> !param.isEmpty())
+                .collect(Collectors.toSet());
+
+        log.info("Processed search parameters: {}", requestParams);
+
+        if (!allowedParams.containsAll(requestParams)) {
+            log.error("Error: Invalid search parameter: {}", by);
+            throw new IllegalArgumentException("Invalid search parameter: " + by);
+        }
+
+        if (requestParams.isEmpty()) {
+            log.warn("Empty request: missing search parameters.");
+            return Collections.emptyList();
+        }
+
+        StringBuilder sql = new StringBuilder("""
+        SELECT DISTINCT f.id, f.name, f.description, f.release_date, f.duration, 
+                        r.id AS rating_id, r.name AS rating_name
+        FROM films f
+        LEFT JOIN film_directors fd ON f.id = fd.film_id
+        LEFT JOIN directors d ON fd.director_id = d.id
+        LEFT JOIN ratings r ON f.rating_id = r.id
+        WHERE 
+    """);
+
+        List<Object> params = new ArrayList<>();
+        List<String> conditions = new ArrayList<>();
+        String searchPattern = "%" + query.toLowerCase() + "%";
+
+        if (requestParams.contains("title")) {
+            conditions.add("LOWER(f.name) LIKE LOWER(?)");
+            params.add(searchPattern);
+        }
+        if (requestParams.contains("director")) {
+            conditions.add("LOWER(d.name) LIKE LOWER(?)");
+            params.add(searchPattern);
+        }
+
+        sql.append(String.join(" OR ", conditions));
+
+        log.debug("Executing SQL query: {}", sql);
+
+        List<Film> films = jdbcTemplate.query(sql.toString(), filmRowMapper, params.toArray());
+
+        log.info("Films found: {}", films.size());
+
+        Map<Integer, List<Genre>> filmsGenres = getFilmsGenres();
+        Map<Integer, List<Director>> filmsDirectors = getFilmsDirectors();
+
+        for (Film film : films) {
+            film.getGenres().addAll(filmsGenres.getOrDefault(film.getId(), List.of()));
+            film.getDirectors().addAll(filmsDirectors.getOrDefault(film.getId(), List.of()));
+        }
+
         return films;
     }
 

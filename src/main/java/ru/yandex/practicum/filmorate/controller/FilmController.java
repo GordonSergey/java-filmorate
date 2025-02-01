@@ -18,10 +18,7 @@ import ru.yandex.practicum.filmorate.exception.ErrorResponse;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 @RestController
 @RequestMapping("/films")
@@ -123,5 +120,21 @@ public class FilmController {
     @GetMapping("/director/{directorId}")
     public ResponseEntity<List<Film>> getFilmsByDirector(@PathVariable int directorId, @RequestParam String sortBy) {
         return ResponseEntity.ok(filmService.getFilmsByDirector(directorId, sortBy));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<Film>> searchFilms(
+            @RequestParam String query,
+            @RequestParam(required = false, defaultValue = "title") String by) {
+        try {
+            log.info("Запрос на поиск фильмов: query='{}', by='{}'", query, by);
+            List<Film> films = filmService.searchFilms(query, by);
+
+            log.info("Поиск завершен. Найдено {} фильмов.", films.size());
+            return ResponseEntity.ok(films);
+        } catch (IllegalArgumentException e) {
+            log.error("Ошибка в параметрах поиска: {}", e.getMessage());
+            return ResponseEntity.ok(Collections.emptyList());
+        }
     }
 }

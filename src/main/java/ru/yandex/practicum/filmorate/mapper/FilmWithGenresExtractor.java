@@ -30,7 +30,7 @@ public class FilmWithGenresExtractor implements ResultSetExtractor<List<Film>> {
                     newFilm.setMpa(new Mpa(rs.getInt("rating_id"), rs.getString("rating_name")));
                     newFilm.setGenres(new ArrayList<>());
                 } catch (SQLException e) {
-                    throw new RuntimeException("Ошибка при извлечении данных фильма", e);
+                    throw new RuntimeException("Error extracting film data", e);
                 }
                 return newFilm;
             });
