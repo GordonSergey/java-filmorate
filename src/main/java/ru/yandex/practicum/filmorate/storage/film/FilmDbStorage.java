@@ -260,7 +260,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
                 .orElseThrow(() -> new NoSuchElementException("User with ID " + friendId + " not found."));
 
         String query = """
-        SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration, 
+        SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
                r.id AS rating_id, r.name AS rating_name,
                (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id) AS likes_count
         FROM films f
