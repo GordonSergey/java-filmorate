@@ -7,10 +7,10 @@ import ru.yandex.practicum.filmorate.model.Mpa;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 
 @Component
 public class FilmRowMapper implements RowMapper<Film> {
-
     @Override
     public Film mapRow(ResultSet rs, int rowNum) throws SQLException {
         Film film = new Film();
@@ -19,8 +19,11 @@ public class FilmRowMapper implements RowMapper<Film> {
         film.setDescription(rs.getString("description"));
         film.setReleaseDate(rs.getDate("release_date").toLocalDate());
         film.setDuration(rs.getInt("duration"));
-        film.setMpa(Mpa.builder().id(rs.getInt("rating_id"))
-                .name(rs.getString("rating_name")).build());
+        if (rs.getObject("rating_id") != null) {
+            film.setMpa(new Mpa(rs.getInt("rating_id"), rs.getString("rating_name")));
+        }
+        film.setGenres(new ArrayList<>());
+        film.setDirectors(new ArrayList<>());
         return film;
     }
 }

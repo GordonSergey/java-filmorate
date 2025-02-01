@@ -113,6 +113,13 @@ public class FilmService {
                 .toList();
     }
 
+    public List<Film> searchFilms(String query, String by) {
+        if (!by.equals("title") && !by.equals("director") && !by.equals("title,director")) {
+            throw new IllegalArgumentException("Invalid search parameter: " + by);
+        }
+        return filmStorage.searchFilms(query, by);
+    }
+
     private void validateFilm(Film film) {
         if (film.getName() == null || film.getName().trim().isEmpty()) {
             log.error("Validation failed: Film name is empty.");
