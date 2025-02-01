@@ -12,6 +12,7 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
 import ru.yandex.practicum.filmorate.storage.BaseDbStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreDbStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,15 +24,16 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     private final GenreDbStorage genreDbStorage;
     private final JdbcTemplate jdbcTemplate;
+    private final UserStorage userStorage;
     private final RowMapper<Film> filmRowMapper;
 
-    public FilmDbStorage(JdbcTemplate jdbcTemplate, RowMapper<Film> filmRowMapper, GenreDbStorage genreDbStorage) {
+    public FilmDbStorage(JdbcTemplate jdbcTemplate, RowMapper<Film> filmRowMapper, GenreDbStorage genreDbStorage, UserStorage userStorage) {
         super(jdbcTemplate, filmRowMapper);
         this.jdbcTemplate = jdbcTemplate;
         this.filmRowMapper = filmRowMapper;
         this.genreDbStorage = genreDbStorage;
+        this.userStorage = userStorage;
     }
-
 
     @Override
     public Film addFilm(Film film) {
@@ -251,6 +253,33 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         delete(query, userId, filmId);
     }
 
+    public List<Film> getCommonFilms(int userId, int friendId) {
+        userStorage.getUserById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User with ID " + userId + " not found."));
+        userStorage.getUserById(friendId)
+                .orElseThrow(() -> new NoSuchElementException("User with ID " + friendId + " not found."));
+
+        String query = """
+        SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration, 
+               r.id AS rating_id, r.name AS rating_name,
+               (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id) AS likes_count
+        FROM films f
+        JOIN likes l1 ON f.id = l1.film_id
+        JOIN likes l2 ON f.id = l2.film_id AND l1.user_id != l2.user_id
+        LEFT JOIN ratings r ON f.rating_id = r.id
+        WHERE l1.user_id = ? AND l2.user_id = ?
+        GROUP BY f.id, f.name, f.description, f.release_date, f.duration, r.id, r.name
+        ORDER BY likes_count DESC;
+        """;
+
+        List<Film> films = jdbcTemplate.query(query, new FilmWithGenresExtractor(), userId, friendId);
+
+        if (films.isEmpty()) {
+            throw new NoSuchElementException("No common films found for users " + userId + " and " + friendId);
+        }
+
+        return films;
+    }
 
     @Override
     public List<Film> getPopularsFilms(long genreId, int year) {
@@ -295,10 +324,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     @Override
     public List<Film> searchFilms(String query, String by) {
-        log.info("Searching for films: query='{}', by='{}'", query, by);
-
         if (by == null || by.trim().isEmpty()) {
-            log.warn("The 'by' parameter is empty or missing. Returning an empty list.");
             return Collections.emptyList();
         }
 
@@ -309,15 +335,11 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
                 .filter(param -> !param.isEmpty())
                 .collect(Collectors.toSet());
 
-        log.info("Processed search parameters: {}", requestParams);
-
         if (!allowedParams.containsAll(requestParams)) {
-            log.error("Error: Invalid search parameter: {}", by);
             throw new IllegalArgumentException("Invalid search parameter: " + by);
         }
 
         if (requestParams.isEmpty()) {
-            log.warn("Empty request: missing search parameters.");
             return Collections.emptyList();
         }
 
@@ -346,11 +368,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
         sql.append(String.join(" OR ", conditions));
 
-        log.debug("Executing SQL query: {}", sql);
-
         List<Film> films = jdbcTemplate.query(sql.toString(), filmRowMapper, params.toArray());
-
-        log.info("Films found: {}", films.size());
 
         Map<Integer, List<Genre>> filmsGenres = getFilmsGenres();
         Map<Integer, List<Director>> filmsDirectors = getFilmsDirectors();

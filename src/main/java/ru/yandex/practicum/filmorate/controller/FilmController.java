@@ -1,8 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -24,7 +22,6 @@ import java.util.*;
 @RequestMapping("/films")
 public class FilmController {
 
-    private static final Logger log = LoggerFactory.getLogger(FilmController.class);
     private final FilmService filmService;
 
     public FilmController(FilmService filmService) {
@@ -84,16 +81,12 @@ public class FilmController {
 
     @PutMapping("/{filmId}/like/{userId}")
     public ResponseEntity<?> addLike(@PathVariable int filmId, @PathVariable int userId) {
-        log.info("Adding like to film ID: {} by user ID: {}", filmId, userId);
         try {
             filmService.addLike(filmId, userId);
-            log.info("Like added successfully to film ID: {} by user ID: {}", filmId, userId);
             return ResponseEntity.noContent().build();
         } catch (NoSuchElementException ex) {
-            log.warn("Error adding like: {}", ex.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
         } catch (Exception ex) {
-            log.error("Unexpected error while adding like", ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unexpected error occurred."));
         }
     }
@@ -107,6 +100,14 @@ public class FilmController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(new ErrorResponse("Not found", ex.getMessage()));
         }
+    }
+
+    @GetMapping("/common")
+    public ResponseEntity<List<Film>> getCommonFilms(
+            @RequestParam int userId,
+            @RequestParam int friendId) {
+        List<Film> commonFilms = filmService.getCommonFilms(userId, friendId);
+        return ResponseEntity.ok(commonFilms);
     }
 
     @GetMapping("popular")
@@ -127,13 +128,9 @@ public class FilmController {
             @RequestParam String query,
             @RequestParam(required = false, defaultValue = "title") String by) {
         try {
-            log.info("Запрос на поиск фильмов: query='{}', by='{}'", query, by);
             List<Film> films = filmService.searchFilms(query, by);
-
-            log.info("Поиск завершен. Найдено {} фильмов.", films.size());
             return ResponseEntity.ok(films);
         } catch (IllegalArgumentException e) {
-            log.error("Ошибка в параметрах поиска: {}", e.getMessage());
             return ResponseEntity.ok(Collections.emptyList());
         }
     }
