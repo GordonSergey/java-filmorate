@@ -57,6 +57,13 @@ public class FilmService {
         return filmStorage.updateFilm(film);
     }
 
+    public void deleteFilm(int id) {
+        if (!filmStorage.existsById(id)) {
+            throw new NoSuchElementException("Film with ID " + id + " not found.");
+        }
+        filmStorage.deleteFilm(id);
+    }
+
     public Film getFilmById(int id) {
         return filmStorage.getFilmById(id)
                 .orElseThrow(() -> {
@@ -97,14 +104,12 @@ public class FilmService {
     }
 
     public List<Film> getPopularFilms(int limit, long genreId, int year) {
-        if (limit == 0) {
-            return filmStorage.getPopularsFilms(genreId, year).stream()
-                    .sorted()
-                    .toList();
-        }
-        return filmStorage.getPopularsFilms(genreId, year).stream()
+        List<Film> films = filmStorage.getPopularsFilms(genreId, year);
+
+        return films.stream()
+                .filter(f -> filmStorage.existsById(f.getId()))
                 .sorted()
-                .limit(limit)
+                .limit(limit > 0 ? limit : films.size())
                 .toList();
     }
 

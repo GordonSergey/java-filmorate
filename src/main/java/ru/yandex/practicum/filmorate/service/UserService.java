@@ -46,6 +46,15 @@ public class UserService {
         return userStorage.updateUser(user);
     }
 
+    public void deleteUser(int id) {
+        if (!userStorage.existsUserById(id)) {
+            throw new NoSuchElementException("User with ID " + id + " not found.");
+        }
+
+        userStorage.removeAllFriends(id);
+        userStorage.deleteUser(id);
+    }
+
     public Optional<User> getUserById(int id) {
         return userStorage.getUserById(id);
     }

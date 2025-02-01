@@ -62,6 +62,12 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
     }
 
     @Override
+    public void deleteUser(int id) {
+        String query = "DELETE FROM users WHERE id=?";
+        delete(query, id);
+    }
+
+    @Override
     public void addFriend(int userId, int friendId) {
         String firstRequestForFriendship = """
                 INSERT INTO friends (user_id, friend_id, status)
@@ -84,6 +90,11 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
                 DELETE FROM friends
                 WHERE  user_id = ? AND friend_id = ?""";
         delete(query, userId, friendId);
+    }
+
+    public void removeAllFriends(int userId) {
+        String query = "DELETE FROM friends WHERE user_id = ? OR friend_id = ?";
+        jdbcTemplate.update(query, userId, userId);
     }
 
     @Override
