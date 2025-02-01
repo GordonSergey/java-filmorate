@@ -40,7 +40,15 @@ public class FriendService {
     }
 
     public List<User> getFriends(int userId) {
-        return userStorage.getFriends(userId);
+        if (!isUserExist(userId)) {
+            throw new NoSuchElementException("User with ID " + userId + " not found");
+        }
+
+        List<User> friends = userStorage.getFriends(userId);
+
+        return friends.stream()
+                .filter(friend -> isUserExist(friend.getId()))
+                .toList();
     }
 
     public List<User> getCommonFriends(int userId, int otherId) {

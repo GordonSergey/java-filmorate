@@ -80,6 +80,12 @@ public class UserController {
         }
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable int id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{userId}")
     public ResponseEntity<?> getUser(@PathVariable @Positive int userId) {
         try {
