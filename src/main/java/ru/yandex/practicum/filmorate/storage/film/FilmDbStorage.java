@@ -148,6 +148,27 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         return films;
     }
 
+    @Override
+    public void deleteFilm(int id) {
+        String deleteLikesQuery = "DELETE FROM likes WHERE film_id = ?";
+        String deleteGenresQuery = "DELETE FROM film_genres WHERE film_id = ?";
+        String deleteDirectorsQuery = "DELETE FROM film_directors WHERE film_id = ?";
+
+        jdbcTemplate.update(deleteLikesQuery, id);
+        jdbcTemplate.update(deleteGenresQuery, id);
+        jdbcTemplate.update(deleteDirectorsQuery, id);
+
+        String deleteFilmQuery = "DELETE FROM films WHERE id = ?";
+        jdbcTemplate.update(deleteFilmQuery, id);
+    }
+
+    @Override
+    public boolean existsById(int id) {
+        String query = "SELECT COUNT(*) FROM films WHERE id=?";
+        Integer count = jdbcTemplate.queryForObject(query, Integer.class, id);
+        return count != null && count > 0;
+    }
+
     public List<Film> getFilmsByDirector(int directorId, String sortBy) {
         String orderBy = switch (sortBy) {
             case "year" -> "f.release_date";
