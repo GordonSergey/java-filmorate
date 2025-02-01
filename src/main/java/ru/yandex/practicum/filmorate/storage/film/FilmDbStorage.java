@@ -322,13 +322,13 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         }
 
         StringBuilder sql = new StringBuilder("""
-        SELECT DISTINCT f.id, f.name, f.description, f.release_date, f.duration, 
+        SELECT DISTINCT f.id, f.name, f.description, f.release_date, f.duration,
                         r.id AS rating_id, r.name AS rating_name
         FROM films f
         LEFT JOIN film_directors fd ON f.id = fd.film_id
         LEFT JOIN directors d ON fd.director_id = d.id
         LEFT JOIN ratings r ON f.rating_id = r.id
-        WHERE 
+        WHERE
     """);
 
         List<Object> params = new ArrayList<>();
