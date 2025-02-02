@@ -41,7 +41,7 @@ public class ReviewController {
     }
 
     @GetMapping("?filmId={filmId}&count={count}")
-    public ResponseEntity<?> getAllReviewsByFilmId(@PathVariable int filmId, @PathVariable int count) {
+    public ResponseEntity<?> getAllReviewsByFilmId(@RequestParam int filmId, @RequestParam(defaultValue = "10") int count) {
         return null;
     }
 

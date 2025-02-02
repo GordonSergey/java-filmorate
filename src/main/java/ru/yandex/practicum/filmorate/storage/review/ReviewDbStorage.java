@@ -1,5 +1,7 @@
 package ru.yandex.practicum.filmorate.storage.review;
 
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -7,6 +9,7 @@ import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.BaseDbStorage;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 @Repository
@@ -33,23 +36,34 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     public Review updateReview(Review updateReview) {
 
         String updateReviewQuery = """
-                INSERT INTO reviews (content, is_positive, user_id, film_id) 
-                VALUES (?, ?, ?, ?)
+                UPDATE reviews SET content = ?, is_positive = ?, user_id = ?, film_id = ? 
+                WHERE id = ? 
                 """;
 
         update(updateReviewQuery, updateReview.getContent(), updateReview.isPositive(), updateReview.getUserId(),
-                updateReview.getFilmId());
+                updateReview.getFilmId(), updateReview.getId());
 
         return updateReview;
     }
 
     public void deleteReviewById(int id) {
         String deleteReviewQuery = """
-                DELETE FROM clients
+                DELETE FROM reviews
                 WHERE id = ?
                 """;
-
         delete(deleteReviewQuery, id);
+
+        String deleteLikesReviewQuery = """
+                DELETE FROM review_likes
+                WHERE review_id = ?
+                """;
+        delete(deleteLikesReviewQuery, id);
+
+        String deleteDislikeReviewQuery = """
+                DELETE FROM review_dislikes
+                WHERE review_id = ?
+                """;
+        delete(deleteDislikeReviewQuery, id);
     }
 
     public Review getReviewById(int id) {
@@ -68,32 +82,115 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public List<Review> getAllReviewsByFilmId(int filmId, int count) {
+        if (count <= 0 ) {
+            throw new IllegalArgumentException("Значение параметра count меньше нуля");
+        }
+
+        if (filmId <= 0) {
+            throw new IllegalArgumentException("Значение параметра filmId меньше нуля");
+        }
 
         String getAllReviewsQuery = """
-                SELECT id, content, is_positive, user_id, film_id, useful
-                FROM reviews
-                WHERE film_id = ?
-                GROUP BY useful
-                LIMIT ?
-                """;
+                    SELECT id, content, is_positive, user_id, film_id, useful
+                    FROM reviews
+                    WHERE film_id = ?
+                    GROUP BY useful
+                    ORDER BY useful DESC
+                    LIMIT ?
+                    """;
 
-        List<Review> reviewList = findMany(getAllReviewsQuery, filmId, count);
-        return  null;
+        return findMany(getAllReviewsQuery, filmId, count);
     }
 
-    public void addLike(int id, int userId) {
+    public void addLike(int reviewId, int userId) {
+        if (reviewId <= 0 ) {
+            throw new IllegalArgumentException("Значение параметра reviewId меньше нуля");
+        }
+
+        if (userId <= 0) {
+            throw new IllegalArgumentException("Значение параметра userId меньше нуля");
+        }
+
         String addLikeQuery = """
-                INSERT INTO reviews 
-                VALUES (?)
-                WHERE id = ?
+                INSERT INTO review_likes (user_id, review_id)
+                VALUES (?, ?)
                 """;
 
-
+        try {
+            insert(addLikeQuery, userId, reviewId);
+        } catch (DataAccessException e) {
+            throw new DuplicateKeyException("Такой лайк уже существует");
+        }
     }
 
-    public void addDislike(int id, int userId) {}
+    public void addDislike(int reviewId, int userId) {
+        if (reviewId <= 0 ) {
+            throw new IllegalArgumentException("Значение параметра reviewId меньше нуля");
+        }
 
-    public void deleteLike(int id, int userId) {}
+        if (userId <= 0) {
+            throw new IllegalArgumentException("Значение параметра userId меньше нуля");
+        }
 
-    public void deleteDislike(int id, int userId) {}
+        String addDislikeQuery = """
+                INSERT INTO review_dislikes (user_id, review_id)
+                VALUES (?, ?)
+                """;
+
+        try {
+            insert(addDislikeQuery, userId, reviewId);
+        } catch (DataAccessException e) {
+            throw new DuplicateKeyException("Такой дизлайк уже существует");
+        }
+    }
+
+    public void deleteLike(int reviewId, int userId) {
+        if (reviewId <= 0 ) {
+            throw new IllegalArgumentException("Значение параметра reviewId меньше нуля.");
+        }
+
+        if (userId <= 0) {
+            throw new IllegalArgumentException("Значение параметра userId меньше нуля.");
+        }
+
+        String deleteLikeQuery = """
+                    DELETE FROM review_likes
+                    WHERE user_id = ? AND review_id = ?
+                    """;
+
+        if (!delete(deleteLikeQuery, userId, reviewId)) {
+            throw new NoSuchElementException("Такого лайка не существует.");
+        }
+    }
+
+    public void deleteDislike(int reviewId, int userId) {
+        if (reviewId <= 0 ) {
+            throw new IllegalArgumentException("Значение параметра reviewId меньше нуля.");
+        }
+
+        if (userId <= 0) {
+            throw new IllegalArgumentException("Значение параметра userId меньше нуля.");
+        }
+
+        String deleteLikeQuery = """
+                    DELETE FROM review_dislikes
+                    WHERE user_id = ? AND review_id = ?
+                    """;
+
+        if (!delete(deleteLikeQuery, userId, reviewId)) {
+            throw new NoSuchElementException("Такого дизлайка не существует.");
+        }
+    }
+
+    public boolean updateUseful(int reviewId, int value) {
+        String updateUsefulQuery = """
+                UPDATE reviews SET useful = useful + ?
+                WHERE id = ? 
+                """;
+        if (update(updateUsefulQuery, value, reviewId) > 0) {
+            return true;
+        }
+
+        return false;
+    }
 }

@@ -75,3 +75,17 @@ CREATE TABLE IF NOT EXISTS reviews
     film_id     INTEGER     NOT NULL REFERENCES films (id),
     useful      INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS review_likes
+(
+    user_id     INTEGER     NOT NULL REFERENCES users (id),
+    review_id   INTEGER     NOT NULL REFERENCES reviews (id),
+    PRIMARY KEY (user_id, review_id)
+);
+
+CREATE TABLE IF NOT EXISTS review_dislikes
+(
+    user_id     INTEGER     NOT NULL REFERENCES users (id),
+    review_id   INTEGER     NOT NULL REFERENCES reviews (id),
+    PRIMARY KEY (user_id, review_id)
+);
