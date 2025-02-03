@@ -20,6 +20,8 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public Review postNewReview(Review review) {
+            checkId(review.getUserId(), "users", "id");
+            checkId(review.getFilmId(), "films", "id");
 
             String postReviewQuery = """
                     INSERT INTO reviews (content, is_positive, user_id, film_id, useful) 
@@ -34,6 +36,10 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public Review updateReview(Review updateReview) {
+
+        checkId(updateReview.getId(), "reviews", "id");
+        checkId(updateReview.getUserId(), "users", "id");
+        checkId(updateReview.getFilmId(), "films", "id");
 
         String updateReviewQuery = """
                 UPDATE reviews SET content = ?, is_positive = ?, user_id = ?, film_id = ? 
@@ -192,5 +198,14 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
         }
 
         return false;
+    }
+
+    public void checkId(int id, String tableName, String columnName) {
+        String checkQuery = String.format("SELECT EXISTS (SELECT 1 FROM %s) WHERE %s = ?", tableName, columnName);
+
+        if (jdbcTemplate.queryForObject(checkQuery, Integer.class, id) == 0) {
+            throw new NoSuchElementException("Такого объекта не существует");
+        }
+
     }
 }
