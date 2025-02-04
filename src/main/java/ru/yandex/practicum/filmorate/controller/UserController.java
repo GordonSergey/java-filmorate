@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FriendService;
 import ru.yandex.practicum.filmorate.service.UserService;
@@ -138,5 +139,11 @@ public class UserController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unexpected error occurred"));
         }
+    }
+
+    @GetMapping("/{id}/recommendations")
+    public ResponseEntity<?> getRecommendations(@PathVariable @Positive int id) {
+        List<Film> recommendations = userService.findRecommendedFilms(id);
+        return ResponseEntity.ok(recommendations);
     }
 }
