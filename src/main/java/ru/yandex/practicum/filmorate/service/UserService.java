@@ -57,22 +57,28 @@ public class UserService {
     }
 
     public List<Film> findRecommendedFilms(int id) {
-        if (!userStorage.existsUserById(id)) throw new NoSuchElementException("User with ID " + id + " not found.");
+        if (!userStorage.existsUserById(id)) {
+            throw new NoSuchElementException("User with ID " + id + " not found.");
+        }
 
         Optional<Integer> maxCoincidence = userStorage.findUserWithSharedFilms(id);
 
-        if (maxCoincidence.isEmpty()) return List.of();
+        if (maxCoincidence.isEmpty()) {
+            return List.of();
+        }
 
+        List<Film> filmsUser1 = Optional.ofNullable(filmStorage.getLikesUser(maxCoincidence.get()))
+                .orElse(Collections.emptyList());
 
-        List<Film> filmsUser1 = filmStorage.getLikesUser(maxCoincidence.get());
+        List<Film> filmsUser2 = Optional.ofNullable(filmStorage.getLikesUser(id))
+                .orElse(Collections.emptyList());
 
-        List<Film> filmsUser2 = filmStorage.getLikesUser(id);
-
-        return Stream.concat(
-                filmsUser1.stream().filter(e -> !filmsUser2.contains(e)),
-                filmsUser2.stream().filter(e -> !filmsUser1.contains(e))
-        ).collect(Collectors.toList());
+        return filmsUser1.stream()
+                .filter(film -> !filmsUser2.contains(film))
+                .collect(Collectors.toList());
     }
+
+
 
     private void validateUser(User user) {
         if (user.getLogin().contains(" ")) {
