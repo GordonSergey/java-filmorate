@@ -409,44 +409,6 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         return films;
     }
 
-//    public List<Film> getLikesUser(int id) {
-//        String query = """
-//                     WITH user_liked_films AS (
-//                             SELECT film_id
-//                             FROM likes
-//                             WHERE user_id = ?
-//                     ),
-//                     similar_users AS (
-//                             SELECT DISTINCT l.user_id
-//                             FROM likes l
-//                             JOIN user_liked_films ulf ON l.film_id = ulf.film_id
-//                             WHERE l.user_id <> ?
-//                     ),
-//                     recommended_films AS (
-//                             SELECT DISTINCT l.film_id
-//                             FROM likes l
-//                             JOIN similar_users su ON l.user_id = su.user_id
-//                             WHERE l.film_id NOT IN (SELECT film_id FROM user_liked_films)
-//                 )
-//                     SELECT f.id, f.name, f.description, f.release_date, f.duration, r.id AS rating_id, r.name AS rating_name
-//                     FROM films f
-//                     JOIN ratings r ON f.rating_id = r.id
-//                     WHERE f.id IN (SELECT film_id FROM recommended_films);
-//                """;
-//
-//        List<Film> films = findMany(query, id);
-//
-//        Map<Integer, List<Genre>> filmsGenres = getFilmsGenres();
-//        Map<Integer, List<Integer>> filmsLikes = getFilmsLikes();
-//        for (Film film : films) {
-//            film.getGenres().addAll(filmsGenres.getOrDefault(film.getId(), List.of()));
-//            film.getLikes().addAll(filmsLikes.getOrDefault(film.getId(), List.of()));
-//        }
-//        return films;
-//    }
-
-
-
     private Map<Integer, List<Genre>> getFilmsGenres() {
         Map<Integer, List<Genre>> filmsGenres = new HashMap<>();
         String query = "SELECT fg.film_id, g.id, g.name FROM film_genres fg " +
