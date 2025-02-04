@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.model;
 
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -13,16 +12,18 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class Review {
-    private int id;
+    @NotNull
+    private int reviewId;
     @NotNull
     @NotBlank
     private String content;
     @NotNull
-    private boolean isPositive;
+    private Boolean isPositive;
     @NotNull
-    private int userId;
+    private Integer userId;
     @NotNull
-    private int filmId;
+    private Integer filmId;
     @Builder.Default
-    private int useful = 0;
+    private Integer useful = 0;
+
 }
