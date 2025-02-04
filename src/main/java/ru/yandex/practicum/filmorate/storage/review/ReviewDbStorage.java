@@ -20,39 +20,36 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public Review postNewReview(Review review) {
-            checkId(review.getUserId(), "users", "id");
+
             checkId(review.getFilmId(), "films", "id");
+            checkId(review.getUserId(), "users", "id");
 
-            String postReviewQuery = """
-                    INSERT INTO reviews (content, is_positive, user_id, film_id, useful) 
-                    VALUES (?, ?, ?, ?, ?)
-                    """;
+        String postReviewQuery = "INSERT INTO reviews (content, is_positive, user_id, film_id, useful) " +
+                "VALUES (?, ?, ?, ?, ?)";
 
-            int reviewId = insert(postReviewQuery, review.getContent(), review.isPositive(),
-                    review.getUserId(), review.getFilmId(), 0);
-            review.setId(reviewId);
+        int reviewId = insert(postReviewQuery, review.getContent(), review.getIsPositive(),
+                review.getUserId(), review.getFilmId(), 0);
+        review.setReviewId(reviewId);
 
-            return review;
+        return review;
     }
 
     public Review updateReview(Review updateReview) {
 
-        checkId(updateReview.getId(), "reviews", "id");
+        checkId(updateReview.getReviewId(), "reviews", "id");
         checkId(updateReview.getUserId(), "users", "id");
         checkId(updateReview.getFilmId(), "films", "id");
 
-        String updateReviewQuery = """
-                UPDATE reviews SET content = ?, is_positive = ?, user_id = ?, film_id = ? 
-                WHERE id = ? 
-                """;
+        String updateReviewQuery = "UPDATE reviews SET content = ?, is_positive = ?, user_id = ?, film_id = ? WHERE id = ?";
 
-        update(updateReviewQuery, updateReview.getContent(), updateReview.isPositive(), updateReview.getUserId(),
-                updateReview.getFilmId(), updateReview.getId());
+        update(updateReviewQuery, updateReview.getContent(), updateReview.getIsPositive(), updateReview.getUserId(),
+                updateReview.getFilmId(), updateReview.getReviewId());
 
         return updateReview;
     }
 
     public void deleteReviewById(int id) {
+        checkId(id, "reviews", "id");
         String deleteReviewQuery = """
                 DELETE FROM reviews
                 WHERE id = ?
@@ -73,10 +70,10 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public Review getReviewById(int id) {
-        String getReviewQuery = """
-                SELECT id, content, is_positive, user_id, film_id, useful 
-                FROM reviews 
-                """;
+
+        checkId(id, "reviews", "id");
+
+        String getReviewQuery = "SELECT id, content, is_positive, user_id, film_id, useful FROM reviews WHERE id = ?";
 
         Optional<Review> reviewOptional = findOne(getReviewQuery, id);
 
@@ -88,13 +85,8 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public List<Review> getAllReviewsByFilmId(int filmId, int count) {
-        if (count <= 0 ) {
-            throw new IllegalArgumentException("Значение параметра count меньше нуля");
-        }
 
-        if (filmId <= 0) {
-            throw new IllegalArgumentException("Значение параметра filmId меньше нуля");
-        }
+        checkId(filmId, "films", "id");
 
         String getAllReviewsQuery = """
                     SELECT id, content, is_positive, user_id, film_id, useful
@@ -109,34 +101,25 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public void addLike(int reviewId, int userId) {
-        if (reviewId <= 0 ) {
-            throw new IllegalArgumentException("Значение параметра reviewId меньше нуля");
-        }
 
-        if (userId <= 0) {
-            throw new IllegalArgumentException("Значение параметра userId меньше нуля");
-        }
+        checkId(reviewId, "reviews", "id");
+        checkId(userId, "users", "id");
 
         String addLikeQuery = """
                 INSERT INTO review_likes (user_id, review_id)
                 VALUES (?, ?)
                 """;
-
         try {
-            insert(addLikeQuery, userId, reviewId);
+            jdbcTemplate.update(addLikeQuery, userId, reviewId);
         } catch (DataAccessException e) {
-            throw new DuplicateKeyException("Такой лайк уже существует");
+            throw new DuplicateKeyException("Такой дизлайк уже существует");
         }
+
     }
 
     public void addDislike(int reviewId, int userId) {
-        if (reviewId <= 0 ) {
-            throw new IllegalArgumentException("Значение параметра reviewId меньше нуля");
-        }
-
-        if (userId <= 0) {
-            throw new IllegalArgumentException("Значение параметра userId меньше нуля");
-        }
+        checkId(reviewId, "reviews", "id");
+        checkId(userId, "users", "id");
 
         String addDislikeQuery = """
                 INSERT INTO review_dislikes (user_id, review_id)
@@ -144,20 +127,16 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
                 """;
 
         try {
-            insert(addDislikeQuery, userId, reviewId);
+            jdbcTemplate.update(addDislikeQuery, userId, reviewId);
         } catch (DataAccessException e) {
             throw new DuplicateKeyException("Такой дизлайк уже существует");
         }
     }
 
     public void deleteLike(int reviewId, int userId) {
-        if (reviewId <= 0 ) {
-            throw new IllegalArgumentException("Значение параметра reviewId меньше нуля.");
-        }
 
-        if (userId <= 0) {
-            throw new IllegalArgumentException("Значение параметра userId меньше нуля.");
-        }
+        checkId(reviewId, "reviews", "id");
+        checkId(userId, "users", "id");
 
         String deleteLikeQuery = """
                     DELETE FROM review_likes
@@ -170,13 +149,9 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public void deleteDislike(int reviewId, int userId) {
-        if (reviewId <= 0 ) {
-            throw new IllegalArgumentException("Значение параметра reviewId меньше нуля.");
-        }
 
-        if (userId <= 0) {
-            throw new IllegalArgumentException("Значение параметра userId меньше нуля.");
-        }
+        checkId(reviewId, "reviews", "id");
+        checkId(userId, "users", "id");
 
         String deleteLikeQuery = """
                     DELETE FROM review_dislikes
@@ -189,23 +164,19 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public boolean updateUseful(int reviewId, int value) {
-        String updateUsefulQuery = """
-                UPDATE reviews SET useful = useful + ?
-                WHERE id = ? 
-                """;
+        String updateUsefulQuery = "UPDATE reviews SET useful = useful + ? WHERE id = ?";
         if (update(updateUsefulQuery, value, reviewId) > 0) {
             return true;
         }
-
         return false;
     }
 
     public void checkId(int id, String tableName, String columnName) {
-        String checkQuery = String.format("SELECT EXISTS (SELECT 1 FROM %s) WHERE %s = ?", tableName, columnName);
-
-        if (jdbcTemplate.queryForObject(checkQuery, Integer.class, id) == 0) {
+        String checkQuery = String.format("SELECT EXISTS(SELECT 1 FROM %s WHERE %s = ?)", tableName, columnName);
+        int i = jdbcTemplate.queryForObject(checkQuery, Integer.class, id);
+        if (i == 0) {
             throw new NoSuchElementException("Такого объекта не существует");
         }
-
     }
+
 }

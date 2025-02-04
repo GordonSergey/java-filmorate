@@ -1,14 +1,11 @@
 package ru.yandex.practicum.filmorate.controller;
 
-import jakarta.validation.Valid;
-import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.service.ReviewService;
 
-import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/reviews")
@@ -16,12 +13,12 @@ public class ReviewController {
 
     private final ReviewService reviewService;
 
-    public ReviewController (ReviewService reviewService) {
+    public ReviewController(ReviewService reviewService) {
         this.reviewService = reviewService;
     }
 
     @PostMapping
-    public ResponseEntity<?> postNewReview(@Valid @RequestBody Review review) {
+    public ResponseEntity<?> postNewReview(@RequestBody Review review) {
         return new ResponseEntity<>(reviewService.postNewReview(review), HttpStatus.CREATED);
     }
 
@@ -41,7 +38,7 @@ public class ReviewController {
         return ResponseEntity.ok(reviewService.getReviewById(id));
     }
 
-    @GetMapping("?filmId={filmId}&count={count}")
+    @GetMapping
     public ResponseEntity<?> getAllReviewsByFilmId(@RequestParam int filmId, @RequestParam(defaultValue = "10") int count) {
         return ResponseEntity.ok(reviewService.getAllReviewsByFilmId(filmId, count));
     }
