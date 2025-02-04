@@ -260,17 +260,17 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
                 .orElseThrow(() -> new NoSuchElementException("User with ID " + friendId + " not found."));
 
         String query = """
-        SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
-               r.id AS rating_id, r.name AS rating_name,
-               (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id) AS likes_count
-        FROM films f
-        JOIN likes l1 ON f.id = l1.film_id
-        JOIN likes l2 ON f.id = l2.film_id AND l1.user_id != l2.user_id
-        LEFT JOIN ratings r ON f.rating_id = r.id
-        WHERE l1.user_id = ? AND l2.user_id = ?
-        GROUP BY f.id, f.name, f.description, f.release_date, f.duration, r.id, r.name
-        ORDER BY likes_count DESC;
-        """;
+                SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
+                       r.id AS rating_id, r.name AS rating_name,
+                       (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id) AS likes_count
+                FROM films f
+                JOIN likes l1 ON f.id = l1.film_id
+                JOIN likes l2 ON f.id = l2.film_id AND l1.user_id != l2.user_id
+                LEFT JOIN ratings r ON f.rating_id = r.id
+                WHERE l1.user_id = ? AND l2.user_id = ?
+                GROUP BY f.id, f.name, f.description, f.release_date, f.duration, r.id, r.name
+                ORDER BY likes_count DESC;
+                """;
 
         List<Film> films = jdbcTemplate.query(query, new FilmWithGenresExtractor(), userId, friendId);
 
@@ -344,14 +344,14 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         }
 
         StringBuilder sql = new StringBuilder("""
-        SELECT DISTINCT f.id, f.name, f.description, f.release_date, f.duration,
-                        r.id AS rating_id, r.name AS rating_name
-        FROM films f
-        LEFT JOIN film_directors fd ON f.id = fd.film_id
-        LEFT JOIN directors d ON fd.director_id = d.id
-        LEFT JOIN ratings r ON f.rating_id = r.id
-        WHERE
-    """);
+                    SELECT DISTINCT f.id, f.name, f.description, f.release_date, f.duration,
+                                    r.id AS rating_id, r.name AS rating_name
+                    FROM films f
+                    LEFT JOIN film_directors fd ON f.id = fd.film_id
+                    LEFT JOIN directors d ON fd.director_id = d.id
+                    LEFT JOIN ratings r ON f.rating_id = r.id
+                    WHERE
+                """);
 
         List<Object> params = new ArrayList<>();
         List<String> conditions = new ArrayList<>();
@@ -383,20 +383,20 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     public List<Film> getLikesUser(int id) {
         String query = """
-         SELECT
-               f.id AS film_id,
-               f.name AS film_name,
-               f.description,
-               f.release_date,
-               f.duration,
-               r.id AS rating_id,
-               r.name AS rating_name
-        FROM
-               films f
-        JOIN likes l ON f.id = l.film_id
-        LEFT JOIN ratings r ON f.rating_id = r.id
-        WHERE l.user_id = ?;
-        """;
+                 SELECT
+                       f.id AS film_id,
+                       f.name AS film_name,
+                       f.description,
+                       f.release_date,
+                       f.duration,
+                       r.id AS rating_id,
+                       r.name AS rating_name
+                FROM
+                       films f
+                JOIN likes l ON f.id = l.film_id
+                LEFT JOIN ratings r ON f.rating_id = r.id
+                WHERE l.user_id = ?;
+                """;
 
         List<Film> films = findMany(query, id);
 
