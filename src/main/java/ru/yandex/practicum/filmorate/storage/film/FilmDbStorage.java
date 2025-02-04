@@ -381,6 +381,35 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         return films;
     }
 
+    public List<Film> getLikesUser(int id) {
+        String query = """
+         SELECT
+               f.id AS film_id,
+               f.name AS film_name,
+               f.description,
+               f.release_date,
+               f.duration,
+               r.id AS rating_id,
+               r.name AS rating_name
+        FROM
+               films f
+        JOIN likes l ON f.id = l.film_id
+        LEFT JOIN ratings r ON f.rating_id = r.id
+        WHERE l.user_id = ?;
+        """;
+
+        List<Film> films = findMany(query, id);
+
+        Map<Integer, List<Genre>> filmsGenres = getFilmsGenres();
+        Map<Integer, List<Integer>> filmsLikes = getFilmsLikes();
+        for (Film film : films) {
+            film.getGenres().addAll(filmsGenres.getOrDefault(film.getId(), List.of()));
+            film.getLikes().addAll(filmsLikes.getOrDefault(film.getId(), List.of()));
+        }
+        return films;
+    }
+
+
     private Map<Integer, List<Genre>> getFilmsGenres() {
         Map<Integer, List<Genre>> filmsGenres = new HashMap<>();
         String query = "SELECT fg.film_id, g.id, g.name FROM film_genres fg " +

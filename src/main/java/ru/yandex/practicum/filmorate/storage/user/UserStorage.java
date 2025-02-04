@@ -31,4 +31,6 @@ public interface UserStorage {
     boolean existsUserById(int id);
 
     boolean existsFriendByIds(int userId, int friendId);
+
+    Optional<Integer> findUserWithSharedFilms(int id);
 }
