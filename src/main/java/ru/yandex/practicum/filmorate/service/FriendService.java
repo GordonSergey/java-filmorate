@@ -8,7 +8,6 @@ import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -24,18 +23,17 @@ public class FriendService {
         if (!isUserExist(userId) || !isUserExist(friendId)) {
             throw new NoSuchElementException("User not found");
         }
-        Optional<String> friendshipStatusOne = userStorage.getFriendshipStatus(userId, friendId);
-        Optional<String> friendshipStatusTwo = userStorage.getFriendshipStatus(friendId, userId);
-
-        if (friendshipStatusOne.isEmpty() && friendshipStatusTwo.isEmpty()) {
-            sendRequestForFriendship(userId, friendId);
-        } else {
-            friendshipStatusOne.ifPresent(s -> confirmedFriendship(userId, friendId, s));
-            friendshipStatusTwo.ifPresent(s -> confirmedFriendship(friendId, userId, s));
-        }
+        userStorage.logEvent(userId, friendId, "FRIEND", "ADD");
+        userStorage.addFriend(userId, friendId);
     }
 
     public void removeFriend(int userId, int friendId) {
+        if (!isUserExist(userId) || !isUserExist(friendId)) {
+            throw new NoSuchElementException("User not found");
+        }
+
+        userStorage.logEvent(userId, friendId, "FRIEND", "REMOVE");
+
         userStorage.removeFriend(userId, friendId);
     }
 

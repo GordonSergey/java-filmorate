@@ -1,52 +1,45 @@
 package ru.yandex.practicum.filmorate.service;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.like.LikeDbStorage;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class LikeService {
 
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
+    private final LikeDbStorage likeDbStorage;
     private final Map<Integer, Set<Integer>> filmLikes = new HashMap<>();
 
-    public LikeService(FilmStorage filmStorage, UserStorage userStorage) {
+    public LikeService(FilmStorage filmStorage, UserStorage userStorage, LikeDbStorage likeDbStorage) {
         this.filmStorage = filmStorage;
         this.userStorage = userStorage;
+        this.likeDbStorage = likeDbStorage;
     }
 
     public void addLike(int filmId, int userId) {
+        userStorage.logEvent(userId, filmId, "LIKE", "ADD");
 
-        Film film = filmStorage.getFilmById(filmId)
-                .orElseThrow(() -> new NoSuchElementException("Film with ID " + filmId + " not found."));
+        filmStorage.getFilmById(filmId)
+                .orElseThrow(() -> new NoSuchElementException("Film not found"));
+        userStorage.getUserById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found"));
 
-        boolean userExists = userStorage.getUserById(userId).isPresent();
-        if (!userExists) {
-            throw new NoSuchElementException("User with ID " + userId + " not found.");
-        }
-
-        filmLikes.computeIfAbsent(filmId, k -> new HashSet<>()).add(userId);
+        filmStorage.addLike(filmId, userId);
     }
 
     public void removeLike(int filmId, int userId) {
+        userStorage.logEvent(userId, filmId, "LIKE", "REMOVE");
 
-        Film film = filmStorage.getFilmById(filmId)
-                .orElseThrow(() -> new NoSuchElementException("Film with ID " + filmId + " not found."));
-
-        Set<Integer> likes = filmLikes.getOrDefault(filmId, new HashSet<>());
-        if (!likes.remove(userId)) {
-            throw new NoSuchElementException("User with ID " + userId + " has not liked this film.");
-        }
+        filmStorage.removeLike(filmId, userId);
     }
 
     public List<Film> getPopularFilms(int count) {
