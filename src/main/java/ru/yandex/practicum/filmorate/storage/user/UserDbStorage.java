@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.user;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -8,9 +9,9 @@ import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.BaseDbStorage;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
+@Slf4j
 @Repository
 public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
 
@@ -159,5 +160,29 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
 
         List<Integer> result = jdbcTemplate.query(query, (rs, rowNum) -> rs.getInt("matched_user"), id);
         return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+    }
+
+    @Override
+    public void logEvent(int userId, int entityId, String eventType, String operation) {
+        String query = "INSERT INTO events (user_id, entity_id, event_type, operation, timestamp) VALUES (?, ?, ?, ?, ?)";
+        long timestamp = System.currentTimeMillis();
+
+        jdbcTemplate.update(query, userId, entityId, eventType, operation, timestamp);
+    }
+
+    @Override
+    public List<Map<String, Object>> getUserFeed(int userId) {
+        String sql = "SELECT user_id, entity_id, event_type, operation, timestamp " +
+                "FROM events WHERE user_id = ? ORDER BY timestamp ASC";
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> event = new HashMap<>();
+            event.put("userId", rs.getInt("user_id"));
+            event.put("entityId", rs.getInt("entity_id"));
+            event.put("eventType", rs.getString("event_type"));
+            event.put("operation", rs.getString("operation"));
+            event.put("timestamp", rs.getLong("timestamp"));
+            return event;
+        }, userId);
     }
 }

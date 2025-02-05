@@ -66,5 +66,4 @@ public class ReviewController {
         reviewService.deleteDislike(id, userId);
         return new ResponseEntity<>(HttpStatus.OK);
     }
-
 }

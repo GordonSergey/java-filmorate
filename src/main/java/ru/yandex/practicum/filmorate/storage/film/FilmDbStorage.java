@@ -1,10 +1,10 @@
 package ru.yandex.practicum.filmorate.storage.film;
 
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 import ru.yandex.practicum.filmorate.mapper.FilmWithDirectorsExtractor;
 import ru.yandex.practicum.filmorate.mapper.FilmWithGenresExtractor;
 import ru.yandex.practicum.filmorate.model.Director;
@@ -179,7 +179,7 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
             case "year" -> "f.release_date";
             case "likes" -> "(SELECT COUNT(*) FROM likes WHERE film_id = f.id) DESC";
             default ->
-                    throw new IllegalArgumentException("Некорректный параметр sortBy. Используйте 'year' или 'likes'.");
+                    throw new IllegalArgumentException("Invalid sortBy parameter. Use 'year' or 'likes'.");
         };
 
         String query = """

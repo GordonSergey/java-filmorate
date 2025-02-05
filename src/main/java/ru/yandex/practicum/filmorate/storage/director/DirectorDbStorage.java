@@ -1,5 +1,6 @@
 package ru.yandex.practicum.filmorate.storage.director;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -12,15 +13,11 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
+@RequiredArgsConstructor
 public class DirectorDbStorage {
 
     private final JdbcTemplate jdbcTemplate;
     private final RowMapper<Director> directorRowMapper;
-
-    public DirectorDbStorage(JdbcTemplate jdbcTemplate, RowMapper<Director> directorRowMapper) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.directorRowMapper = directorRowMapper;
-    }
 
     public Director addDirector(Director director) {
         String sql = "INSERT INTO directors (name) VALUES (?)";
