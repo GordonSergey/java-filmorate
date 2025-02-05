@@ -21,8 +21,8 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
 
     public Review postNewReview(Review review) {
 
-            checkId(review.getFilmId(), "films", "id");
-            checkId(review.getUserId(), "users", "id");
+        checkId(review.getFilmId(), "films", "id");
+        checkId(review.getUserId(), "users", "id");
 
         String postReviewQuery = "INSERT INTO reviews (content, is_positive, user_id, film_id, useful) " +
                 "VALUES (?, ?, ?, ?, ?)";
@@ -106,15 +106,14 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
         checkId(userId, "users", "id");
 
         String addLikeQuery = """
-                INSERT INTO review_likes (user_id, review_id)
-                VALUES (?, ?)
-                """;
+            INSERT INTO review_likes (user_id, review_id)
+            VALUES (?, ?)
+            """;
         try {
             jdbcTemplate.update(addLikeQuery, userId, reviewId);
         } catch (DataAccessException e) {
-            throw new DuplicateKeyException("Такой дизлайк уже существует");
+            throw new DuplicateKeyException("Such a like already exists");
         }
-
     }
 
     public void addDislike(int reviewId, int userId) {
@@ -122,14 +121,14 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
         checkId(userId, "users", "id");
 
         String addDislikeQuery = """
-                INSERT INTO review_dislikes (user_id, review_id)
-                VALUES (?, ?)
-                """;
+            INSERT INTO review_dislikes (user_id, review_id)
+            VALUES (?, ?)
+            """;
 
         try {
             jdbcTemplate.update(addDislikeQuery, userId, reviewId);
         } catch (DataAccessException e) {
-            throw new DuplicateKeyException("Такой дизлайк уже существует");
+            throw new DuplicateKeyException("Such a dislike already exists");
         }
     }
 
@@ -144,7 +143,7 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
                     """;
 
         if (!delete(deleteLikeQuery, userId, reviewId)) {
-            throw new NoSuchElementException("Такого лайка не существует.");
+            throw new NoSuchElementException("Such a like does not exist.");
         }
     }
 
@@ -159,24 +158,20 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
                     """;
 
         if (!delete(deleteLikeQuery, userId, reviewId)) {
-            throw new NoSuchElementException("Такого дизлайка не существует.");
+            throw new NoSuchElementException("Such a dislike does not exist.");
         }
     }
 
     public boolean updateUseful(int reviewId, int value) {
         String updateUsefulQuery = "UPDATE reviews SET useful = useful + ? WHERE id = ?";
-        if (update(updateUsefulQuery, value, reviewId) > 0) {
-            return true;
-        }
-        return false;
+        return update(updateUsefulQuery, value, reviewId) > 0;
     }
 
     public void checkId(int id, String tableName, String columnName) {
         String checkQuery = String.format("SELECT EXISTS(SELECT 1 FROM %s WHERE %s = ?)", tableName, columnName);
         int i = jdbcTemplate.queryForObject(checkQuery, Integer.class, id);
         if (i == 0) {
-            throw new NoSuchElementException("Такого объекта не существует");
+            throw new NoSuchElementException("Such an object does not exist");
         }
     }
-
 }

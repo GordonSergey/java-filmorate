@@ -73,6 +73,8 @@ public class FilmService {
     }
 
     public void addLike(int filmId, int userId) {
+        userStorage.logEvent(userId, filmId, "LIKE", "ADD");
+
         getFilmById(filmId);
         userStorage.getUserById(userId)
                 .orElseThrow(() -> new NoSuchElementException("User with ID " + userId + " not found."));
@@ -80,10 +82,8 @@ public class FilmService {
     }
 
     public void removeLike(int filmId, int userId) {
-        getFilmById(filmId);
-        if (!likeDbStorage.existsLike(filmId, userId)) {
-            throw new NoSuchElementException("User with ID " + userId + " has not liked this film.");
-        }
+        userStorage.logEvent(userId, filmId, "LIKE", "REMOVE");
+
         filmStorage.removeLike(filmId, userId);
     }
 

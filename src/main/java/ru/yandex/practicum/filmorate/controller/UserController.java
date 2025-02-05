@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.controller;
 import jakarta.validation.Valid;
 import jakarta.validation.ValidationException;
 import jakarta.validation.constraints.Positive;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,24 +13,23 @@ import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FriendService;
 import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/users")
-@Validated
+@RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
     private final FriendService friendService;
-
-    public UserController(UserService userService, FriendService friendService) {
-        this.userService = userService;
-        this.friendService = friendService;
-    }
+    private final UserStorage userStorage;
 
     @PostMapping
     public ResponseEntity<?> addUser(@RequestBody @Valid User user) {
@@ -145,5 +145,13 @@ public class UserController {
     public ResponseEntity<?> getRecommendations(@PathVariable @Positive int id) {
         List<Film> recommendations = userService.findRecommendedFilms(id);
         return ResponseEntity.ok(recommendations);
+    }
+
+    @GetMapping("/{userId}/feed")
+    public ResponseEntity<List<Map<String, Object>>> getUserFeed(@PathVariable int userId) {
+        if (!userStorage.existsUserById(userId)) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+        }
+        return ResponseEntity.ok(userStorage.getUserFeed(userId));
     }
 }

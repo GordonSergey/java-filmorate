@@ -1,32 +1,36 @@
 package ru.yandex.practicum.filmorate.service;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.review.ReviewDbStorage;
+import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
 import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class ReviewService {
     private final ReviewDbStorage reviewDbStorage;
+    private final UserStorage userStorage;
 
     public Review postNewReview(Review review) {
-        validateReview(review);
-        return reviewDbStorage.postNewReview(review);
+        Review createdReview = reviewDbStorage.postNewReview(review);
+        userStorage.logEvent(review.getUserId(), createdReview.getReviewId(), "REVIEW", "ADD");
+        return createdReview;
     }
 
-    public Review updateReview(Review updateReview) {
-        validateReview(updateReview);
-        return reviewDbStorage.updateReview(updateReview);
+    public Review updateReview(Review review) {
+        Review updatedReview = reviewDbStorage.updateReview(review);
+        userStorage.logEvent(review.getUserId(), updatedReview.getReviewId(), "REVIEW", "UPDATE");
+        return updatedReview;
     }
 
     public void deleteReviewById(int id) {
+        Review review = getReviewById(id);
         reviewDbStorage.deleteReviewById(id);
+        userStorage.logEvent(review.getUserId(), review.getReviewId(), "REVIEW", "REMOVE");
     }
 
     public Review getReviewById(int id) {
@@ -34,7 +38,7 @@ public class ReviewService {
     }
 
     public List<Review> getAllReviewsByFilmId(int filmId, int count) {
-        return  reviewDbStorage.getAllReviewsByFilmId(filmId, count);
+        return reviewDbStorage.getAllReviewsByFilmId(filmId, count);
     }
 
     public void addLike(int reviewId, int userId) {
@@ -44,9 +48,9 @@ public class ReviewService {
             System.out.println(" ");
         }
 
-            reviewDbStorage.addLike(reviewId, userId);
-            if (!reviewDbStorage.updateUseful(reviewId, 1)) {
-                reviewDbStorage.deleteLike(reviewId, userId);
+        reviewDbStorage.addLike(reviewId, userId);
+        if (!reviewDbStorage.updateUseful(reviewId, 1)) {
+            reviewDbStorage.deleteLike(reviewId, userId);
 
         }
     }
@@ -75,22 +79,16 @@ public class ReviewService {
 
     private void validateReview(Review review) {
         if (review.getContent() == null || review.getContent().trim().isEmpty()) {
-            log.error("Validation failed: Review content is empty.");
             throw new IllegalArgumentException("Review content cannot be empty.");
         }
         if (review.getIsPositive() == null) {
-            log.error("Validation failed: Review isPositive is null.");
             throw new IllegalArgumentException("isPositive must be not null");
         }
         if (review.getUserId() == null) {
-            log.error("Validation failed: Review userId is null");
             throw new IllegalArgumentException("UserId must be not null");
         }
         if (review.getFilmId() == 0) {
-            log.error("Validation failed: Review filmId is null");
             throw new IllegalArgumentException("FilmId must be not null");
         }
-        log.info("Film validation successful for review: {}", review);
     }
-
 }

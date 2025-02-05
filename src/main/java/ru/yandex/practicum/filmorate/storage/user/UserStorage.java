@@ -3,6 +3,7 @@ package ru.yandex.practicum.filmorate.storage.user;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface UserStorage {
@@ -33,4 +34,8 @@ public interface UserStorage {
     boolean existsFriendByIds(int userId, int friendId);
 
     Optional<Integer> findUserWithSharedFilms(int id);
+
+    void logEvent(int userId, int entityId, String eventType, String operation);
+
+    List<Map<String, Object>> getUserFeed(int userId);
 }
