@@ -137,4 +137,27 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
         Integer count = jdbcTemplate.queryForObject(query, Integer.class, userId, friendId);
         return count != null && count > 0;
     }
+
+    @Override
+    public Optional<Integer> findUserWithSharedFilms(int id) {
+        String query = """
+                 WITH matched_likes AS (
+                     SELECT
+                         l2.user_id AS matched_user,
+                         COUNT(*) AS common_likes
+                     FROM likes l1
+                     JOIN likes l2 ON l1.film_id = l2.film_id
+                                   AND l1.user_id != l2.user_id
+                     WHERE l1.user_id = ?
+                     GROUP BY l2.user_id
+                 )
+                 SELECT matched_user, common_likes
+                 FROM matched_likes
+                 ORDER BY common_likes DESC
+                 LIMIT 1;
+                """;
+
+        List<Integer> result = jdbcTemplate.query(query, (rs, rowNum) -> rs.getInt("matched_user"), id);
+        return result.isEmpty() ? Optional.empty() : Optional.of(result.get(0));
+    }
 }
