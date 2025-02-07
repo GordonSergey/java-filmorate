@@ -1,10 +1,14 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.ErrorResponse;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.service.ReviewService;
+
+import java.util.NoSuchElementException;
 
 
 @RestController
@@ -18,8 +22,13 @@ public class ReviewController {
     }
 
     @PostMapping
-    public ResponseEntity<?> postNewReview(@RequestBody Review review) {
-        return new ResponseEntity<>(reviewService.postNewReview(review), HttpStatus.CREATED);
+    public ResponseEntity<?> postNewReview(@Valid @RequestBody Review review) {
+        try {
+            return new ResponseEntity<>(reviewService.postNewReview(review), HttpStatus.CREATED);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("Bad request", ex.getMessage()));
+        }
     }
 
     @PutMapping
@@ -39,7 +48,8 @@ public class ReviewController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllReviewsByFilmId(@RequestParam int filmId, @RequestParam(defaultValue = "10") int count) {
+    public ResponseEntity<?> getAllReviewsByFilmId(@RequestParam(required = false) Integer filmId,
+                                                   @RequestParam(defaultValue = "10") int count) {
         return ResponseEntity.ok(reviewService.getAllReviewsByFilmId(filmId, count));
     }
 

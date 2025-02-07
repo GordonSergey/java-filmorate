@@ -5,7 +5,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.exception.ErrorResponse;
 import ru.yandex.practicum.filmorate.model.Director;
+import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.DirectorService;
 
 import java.util.List;
@@ -27,8 +29,14 @@ public class DirectorController {
     }
 
     @PostMapping
-    public ResponseEntity<Director> addDirector(@RequestBody @Valid Director director) {
-        return new ResponseEntity<>(directorService.addDirector(director), HttpStatus.CREATED);
+    public ResponseEntity<?> addDirector(@RequestBody @Valid Director director) {
+        try {
+            Director savedDirector = directorService.addDirector(director);
+            return new ResponseEntity<>(savedDirector, HttpStatus.CREATED);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(new ErrorResponse("Validation error", ex.getMessage()));
+        }
     }
 
     @PutMapping

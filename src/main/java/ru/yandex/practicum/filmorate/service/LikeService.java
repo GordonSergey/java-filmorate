@@ -26,7 +26,6 @@ public class LikeService {
     }
 
     public void addLike(int filmId, int userId) {
-        userStorage.logEvent(userId, filmId, "LIKE", "ADD");
 
         filmStorage.getFilmById(filmId)
                 .orElseThrow(() -> new NoSuchElementException("Film not found"));
@@ -37,8 +36,6 @@ public class LikeService {
     }
 
     public void removeLike(int filmId, int userId) {
-        userStorage.logEvent(userId, filmId, "LIKE", "REMOVE");
-
         filmStorage.removeLike(filmId, userId);
     }
 

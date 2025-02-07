@@ -16,6 +16,9 @@ public class ReviewService {
     private final UserStorage userStorage;
 
     public Review postNewReview(Review review) {
+        if (review.getContent() == null || review.getContent().isEmpty()) {
+            throw new IllegalArgumentException("Review content is empty");
+        }
         Review createdReview = reviewDbStorage.postNewReview(review);
         userStorage.logEvent(review.getUserId(), createdReview.getReviewId(), "REVIEW", "ADD");
         return createdReview;
@@ -23,7 +26,7 @@ public class ReviewService {
 
     public Review updateReview(Review review) {
         Review updatedReview = reviewDbStorage.updateReview(review);
-        userStorage.logEvent(review.getUserId(), updatedReview.getReviewId(), "REVIEW", "UPDATE");
+        userStorage.logEvent(getReviewById(review.getReviewId()).getUserId(), updatedReview.getReviewId(), "REVIEW", "UPDATE");
         return updatedReview;
     }
 
@@ -37,8 +40,12 @@ public class ReviewService {
         return reviewDbStorage.getReviewById(id);
     }
 
-    public List<Review> getAllReviewsByFilmId(int filmId, int count) {
-        return reviewDbStorage.getAllReviewsByFilmId(filmId, count);
+    public List<Review> getAllReviewsByFilmId(Integer filmId, int count) {
+        if (filmId == null) {
+            return reviewDbStorage.getAllReviews(count);
+        } else {
+            return reviewDbStorage.getAllReviewsByFilmId(filmId, count);
+        }
     }
 
     public void addLike(int reviewId, int userId) {

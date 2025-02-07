@@ -66,8 +66,21 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
 
     @Override
     public void deleteUser(int id) {
-        String query = "DELETE FROM users WHERE id=?";
-        delete(query, id);
+        String deleteReviewLikes = "DELETE FROM review_likes WHERE user_id = ?";
+        String deleteReviewDislikes = "DELETE FROM review_dislikes WHERE user_id = ?";
+        String deleteReviews = "DELETE FROM reviews WHERE user_id = ?";
+        String deleteLikes = "DELETE FROM likes WHERE user_id = ?";
+        String deleteFriends = "DELETE FROM friends WHERE user_id = ? OR friend_id = ?";
+        String deleteEvents = "DELETE FROM events WHERE user_id = ?";
+        String deleteUser = "DELETE FROM users WHERE id = ?";
+
+        jdbcTemplate.update(deleteReviewLikes, id);
+        jdbcTemplate.update(deleteReviewDislikes, id);
+        jdbcTemplate.update(deleteReviews, id);
+        jdbcTemplate.update(deleteLikes, id);
+        jdbcTemplate.update(deleteFriends, id, id);
+        jdbcTemplate.update(deleteEvents, id);
+        jdbcTemplate.update(deleteUser, id);
     }
 
     @Override
