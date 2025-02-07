@@ -73,9 +73,6 @@ public class FilmController {
     @GetMapping
     public ResponseEntity<List<Film>> getAllFilms() {
         List<Film> films = filmService.getAllFilms();
-        if (films.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-        }
         return ResponseEntity.ok(films);
     }
 
@@ -112,21 +109,26 @@ public class FilmController {
 
     @GetMapping("popular")
     public ResponseEntity<Collection<Film>> getPopularFilmsByParam(@RequestParam(defaultValue = "0") int count,
-                                                                   @RequestParam(defaultValue = "0") Long genreid,
+                                                                   @RequestParam(defaultValue = "0") Long genreId,
                                                                    @RequestParam(defaultValue = "0") int year) {
-        Collection<Film> popularFilms = filmService.getPopularFilms(count, genreid, year);
+        Collection<Film> popularFilms = filmService.getPopularFilms(count, genreId, year);
         return ResponseEntity.ok(popularFilms);
     }
 
     @GetMapping("/director/{directorId}")
-    public ResponseEntity<List<Film>> getFilmsByDirector(@PathVariable int directorId, @RequestParam String sortBy) {
-        return ResponseEntity.ok(filmService.getFilmsByDirector(directorId, sortBy));
+    public ResponseEntity<?> getFilmsByDirector(@PathVariable int directorId, @RequestParam String sortBy) {
+        try {
+            return ResponseEntity.ok(filmService.getFilmsByDirector(directorId, sortBy));
+        } catch (NoSuchElementException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new ErrorResponse("Not found", ex.getMessage()));
+        }
     }
 
     @GetMapping("/search")
     public ResponseEntity<List<Film>> searchFilms(
-            @RequestParam String query,
-            @RequestParam(required = false, defaultValue = "title") String by) {
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) String by) {
         try {
             List<Film> films = filmService.searchFilms(query, by);
             return ResponseEntity.ok(films);

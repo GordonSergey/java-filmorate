@@ -23,6 +23,9 @@ public class DirectorService {
     }
 
     public Director addDirector(Director director) {
+        if (director.getName() == null || director.getName().isBlank()) {
+            throw new IllegalArgumentException("Not valid director name");
+        }
         return directorDbStorage.addDirector(director);
     }
 

@@ -62,7 +62,10 @@ public class DirectorDbStorage {
     }
 
     public void deleteDirector(int id) {
-        String sql = "DELETE FROM directors WHERE id = ?";
-        jdbcTemplate.update(sql, id);
+        String deleteFilmDirectors = "DELETE FROM film_directors WHERE director_id = ?";
+        String deleteDirector = "DELETE FROM directors WHERE id = ?";
+
+        jdbcTemplate.update(deleteFilmDirectors, id);
+        jdbcTemplate.update(deleteDirector, id);
     }
 }

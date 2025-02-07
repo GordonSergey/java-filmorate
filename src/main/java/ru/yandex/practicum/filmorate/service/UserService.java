@@ -47,7 +47,6 @@ public class UserService {
             throw new NoSuchElementException("User with ID " + id + " not found.");
         }
 
-        userStorage.removeAllFriends(id);
         userStorage.deleteUser(id);
     }
 
@@ -86,6 +85,9 @@ public class UserService {
         }
         if (user.getBirthday() != null && user.getBirthday().isAfter(LocalDate.now())) {
             throw new ValidationException("Birthday cannot be in the future");
+        }
+        if (user.getName() == null || user.getName().isBlank()) {
+            user.setName(user.getLogin());
         }
     }
 }

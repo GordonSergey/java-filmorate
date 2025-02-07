@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import ru.yandex.practicum.filmorate.mapper.FilmWithGenresExtractor;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.Genre;
+import ru.yandex.practicum.filmorate.storage.director.DirectorDbStorage;
 import ru.yandex.practicum.filmorate.storage.film.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.genre.GenreDbStorage;
 import ru.yandex.practicum.filmorate.storage.like.LikeDbStorage;
@@ -27,6 +28,7 @@ public class FilmService {
     private final GenreDbStorage genreDbStorage;
     private final LikeDbStorage likeDbStorage;
     private final MpaDbStorage mpaDbStorage;
+    private final DirectorDbStorage directorDbStorage;
 
     public Film addFilm(Film film) {
         validateFilm(film);
@@ -45,14 +47,7 @@ public class FilmService {
     }
 
     public Film updateFilm(Film film) {
-        Film existingFilm = getFilmById(film.getId());
-
         validateFilm(film);
-
-        if (film.getDirectors() == null || film.getDirectors().isEmpty()) {
-            film.setDirectors(existingFilm.getDirectors());
-        }
-
         return filmStorage.updateFilm(film);
     }
 
@@ -82,13 +77,19 @@ public class FilmService {
     }
 
     public void removeLike(int filmId, int userId) {
+        if (!filmStorage.existsById(filmId) || !userStorage.existsUserById(userId)) {
+            throw new NoSuchElementException("User with ID " + userId + " not found.");
+        }
         userStorage.logEvent(userId, filmId, "LIKE", "REMOVE");
-
         filmStorage.removeLike(filmId, userId);
     }
 
     public List<Film> getFilmsByDirector(int directorId, String sortBy) {
-        return filmStorage.getFilmsByDirector(directorId, sortBy);
+        if (!directorDbStorage.existsById(directorId)) {
+            throw new NoSuchElementException("Director with ID " + directorId + " not found.");
+        }
+        List<Film> filmsByDirector = filmStorage.getFilmsByDirector(directorId, sortBy);
+        return filmsByDirector;
     }
 
     public List<Film> getCommonFilms(int userId, int friendId) {
@@ -98,19 +99,19 @@ public class FilmService {
                 .orElseThrow(() -> new NoSuchElementException("User with ID " + friendId + " not found."));
 
         String query = """
-    SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
-           r.id AS rating_id, r.name AS rating_name,
-           g.id AS genre_id, g.name AS genre_name,
-           (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id) AS likes_count
-    FROM films f
-    JOIN likes l1 ON f.id = l1.film_id
-    JOIN likes l2 ON f.id = l2.film_id
-    LEFT JOIN ratings r ON f.rating_id = r.id
-    LEFT JOIN film_genres fg ON f.id = fg.film_id
-    LEFT JOIN genres g ON fg.genre_id = g.id
-    WHERE l1.user_id = ? AND l2.user_id = ?
-    ORDER BY likes_count DESC;
-    """;
+                SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
+                       r.id AS rating_id, r.name AS rating_name,
+                       g.id AS genre_id, g.name AS genre_name,
+                       (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id) AS likes_count
+                FROM films f
+                JOIN likes l1 ON f.id = l1.film_id
+                JOIN likes l2 ON f.id = l2.film_id
+                LEFT JOIN ratings r ON f.rating_id = r.id
+                LEFT JOIN film_genres fg ON f.id = fg.film_id
+                LEFT JOIN genres g ON fg.genre_id = g.id
+                WHERE l1.user_id = ? AND l2.user_id = ?
+                ORDER BY likes_count DESC;
+                """;
 
         try {
             return jdbcTemplate.query(query, new FilmWithGenresExtractor(), userId, friendId);
@@ -130,9 +131,6 @@ public class FilmService {
     }
 
     public List<Film> searchFilms(String query, String by) {
-        if (!by.equals("title") && !by.equals("director") && !by.equals("title,director")) {
-            throw new IllegalArgumentException("Invalid search parameter: " + by);
-        }
         return filmStorage.searchFilms(query, by);
     }
 

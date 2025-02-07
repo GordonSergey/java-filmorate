@@ -5,6 +5,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
+import ru.yandex.practicum.filmorate.mapper.FilmWithDirectorsAndGenresExtractor;
 import ru.yandex.practicum.filmorate.mapper.FilmWithDirectorsExtractor;
 import ru.yandex.practicum.filmorate.mapper.FilmWithGenresExtractor;
 import ru.yandex.practicum.filmorate.model.Director;
@@ -27,7 +28,8 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
     private final UserStorage userStorage;
     private final RowMapper<Film> filmRowMapper;
 
-    public FilmDbStorage(JdbcTemplate jdbcTemplate, RowMapper<Film> filmRowMapper, GenreDbStorage genreDbStorage, UserStorage userStorage) {
+    public FilmDbStorage(JdbcTemplate jdbcTemplate, RowMapper<Film> filmRowMapper, GenreDbStorage genreDbStorage,
+                         UserStorage userStorage) {
         super(jdbcTemplate, filmRowMapper);
         this.jdbcTemplate = jdbcTemplate;
         this.filmRowMapper = filmRowMapper;
@@ -98,26 +100,37 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
             }
         }
 
+        String deleteGenresQuery = "DELETE FROM film_genres WHERE film_id = ?";
+        update(deleteGenresQuery, film.getId());
+
+        if (film.getGenres() != null && !film.getGenres().isEmpty()) {
+            String insertGenresQuery = "INSERT INTO film_genres (film_id, genre_id) VALUES (?, ?)";
+            for (Genre genre : new HashSet<>(film.getGenres())) {
+                update(insertGenresQuery, film.getId(), genre.getId());
+            }
+        }
+
         return getFilmById(film.getId())
                 .orElseThrow(() -> new NoSuchElementException("Film not found after update, ID: " + film.getId()));
     }
 
     public Optional<Film> getFilmById(int id) {
-        String sql = """
-                SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
-                       r.id AS rating_id, r.name AS rating_name,
-                       g.id AS genre_id, g.name AS genre_name
-                FROM films f
-                LEFT JOIN ratings r ON f.rating_id = r.id
-                LEFT JOIN film_genres fg ON f.id = fg.film_id
-                LEFT JOIN genres g ON fg.genre_id = g.id
-                WHERE f.id = ?
+        String query = """
+                    SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
+                           r.id AS rating_id, r.name AS rating_name,
+                           d.id AS director_id, d.name AS director_name,
+                           g.id AS genre_id, g.name AS genre_name
+                    FROM films f
+                    LEFT JOIN ratings r ON f.rating_id = r.id
+                    LEFT JOIN film_directors fd ON f.id = fd.film_id
+                    LEFT JOIN directors d ON fd.director_id = d.id
+                    LEFT JOIN film_genres fg ON fg.film_id = f.id
+                    LEFT JOIN genres g ON fg.genre_id = g.id
+                    WHERE f.id = ?
                 """;
 
-        Optional<Film> film = jdbcTemplate.query(sql, new FilmWithGenresExtractor(), id)
+        Optional<Film> film = jdbcTemplate.query(query, new FilmWithDirectorsAndGenresExtractor(), id)
                 .stream().findFirst();
-
-        film.ifPresent(f -> f.getDirectors().addAll(getFilmsDirectors().getOrDefault(f.getId(), List.of())));
 
         return film;
     }
@@ -176,25 +189,28 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     public List<Film> getFilmsByDirector(int directorId, String sortBy) {
         String orderBy = switch (sortBy) {
-            case "year" -> "f.release_date";
-            case "likes" -> "(SELECT COUNT(*) FROM likes WHERE film_id = f.id) DESC";
-            default ->
-                    throw new IllegalArgumentException("Invalid sortBy parameter. Use 'year' or 'likes'.");
+            case "year" -> "f.release_date ASC";
+            case "likes" -> "like_count DESC";
+            default -> throw new IllegalArgumentException("Invalid sortBy parameter. Use 'year' or 'likes'.");
         };
 
         String query = """
                     SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
                            r.id AS rating_id, r.name AS rating_name,
-                           d.id AS director_id, d.name AS director_name
+                           d.id AS director_id, d.name AS director_name,
+                           g.id AS genre_id, g.name AS genre_name,
+                           (SELECT COUNT(*) FROM likes WHERE film_id = f.id) AS like_count
                     FROM films f
                     LEFT JOIN ratings r ON f.rating_id = r.id
                     LEFT JOIN film_directors fd ON f.id = fd.film_id
                     LEFT JOIN directors d ON fd.director_id = d.id
+                    LEFT JOIN film_genres fg ON fg.film_id = f.id
+                    LEFT JOIN genres g ON fg.genre_id = g.id
                     WHERE fd.director_id = ?
                     ORDER BY %s
                 """.formatted(orderBy);
 
-        return jdbcTemplate.query(query, new FilmWithDirectorsExtractor(), directorId);
+        return jdbcTemplate.query(query, new FilmWithDirectorsAndGenresExtractor(), directorId);
     }
 
     private Map<Integer, List<Director>> getFilmsDirectors() {
@@ -283,42 +299,51 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
 
     @Override
     public List<Film> getPopularsFilms(long genreId, int year) {
-        String query = """
+        String baseQuery = """
                  SELECT
                        f.id AS film_id,
                        f.name AS film_name,
                        f.description,
                        f.release_date,
                        f.duration,
+                       d.id AS director_id, d.name AS director_name,
                        r.id AS rating_id,
-                       r.name AS rating_name
-                FROM
-                       films f
+                       r.name AS rating_name,
+                       (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id) AS likes_count
+                FROM films f
+                LEFT JOIN film_directors fd ON f.id = fd.film_id
+                LEFT JOIN directors d ON fd.director_id = d.id
                 LEFT JOIN ratings r ON f.rating_id = r.id
                 """;
-        List<Film> films;
-        if (genreId != 0 && year != 0) {
-            query = String.format(query + "JOIN film_genres fg ON fg.film_id = f.id " +
-                    "WHERE gf.genre_id = ? " +
-                    "AND YEAR(release_date) = ?;");
-            films = findMany(query, genreId, year);
-        } else if (genreId != 0 && year == 0) {
-            query = String.format(query + "JOIN film_genres fg ON fg.film_id = f.id " +
-                    "WHERE gf.genre_id = ?;");
-            films = findMany(query, genreId);
-        } else if (genreId == 0 && year != 0) {
-            query = String.format(query + "WHERE YEAR(release_date) = ?;");
-            films = findMany(query, year);
-        } else {
-            films = findMany(query);
+
+        StringBuilder queryBuilder = new StringBuilder(baseQuery);
+        List<Object> params = new ArrayList<>();
+
+        if (genreId != 0) {
+            queryBuilder.append(" INNER JOIN film_genres fg ON fg.film_id = f.id WHERE fg.genre_id = ?");
+            params.add(genreId);
         }
+
+        if (year != 0) {
+            queryBuilder.append(genreId != 0 ? " AND" : " WHERE");
+            queryBuilder.append(" YEAR(f.release_date) = ?");
+            params.add(year);
+        }
+
+        queryBuilder.append("""
+                    ORDER BY likes_count DESC
+                """);
+
+        List<Film> films = jdbcTemplate.query(queryBuilder.toString(), new FilmWithDirectorsExtractor(), params.toArray());
 
         Map<Integer, List<Genre>> filmsGenres = getFilmsGenres();
         Map<Integer, List<Integer>> filmsLikes = getFilmsLikes();
+
         for (Film film : films) {
             film.getGenres().addAll(filmsGenres.getOrDefault(film.getId(), List.of()));
             film.getLikes().addAll(filmsLikes.getOrDefault(film.getId(), List.of()));
         }
+
         return films;
     }
 
@@ -327,58 +352,77 @@ public class FilmDbStorage extends BaseDbStorage<Film> implements FilmStorage {
         if (by == null || by.trim().isEmpty()) {
             return Collections.emptyList();
         }
-
-        Set<String> allowedParams = Set.of("title", "director");
-
-        Set<String> requestParams = Arrays.stream(by.split(","))
-                .map(String::trim)
-                .filter(param -> !param.isEmpty())
-                .collect(Collectors.toSet());
-
-        if (!allowedParams.containsAll(requestParams)) {
-            throw new IllegalArgumentException("Invalid search parameter: " + by);
+        if (by.contains("director") && by.contains("title")) {
+            return searchFilmsTitleAndDirector(query);
+        } else if (by.contains("director")) {
+            return searchFilmsDirector(query);
+        } else if (by.contains("title")) {
+            return searchFilmsTitle(query);
         }
+        return Collections.emptyList();
+    }
 
-        if (requestParams.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        StringBuilder sql = new StringBuilder("""
-                    SELECT DISTINCT f.id, f.name, f.description, f.release_date, f.duration,
-                                    r.id AS rating_id, r.name AS rating_name
+    private List<Film> searchFilmsTitleAndDirector(String queryStr) {
+        String query = """
+                    SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
+                           r.id AS rating_id, r.name AS rating_name,
+                           d.id AS director_id, d.name AS director_name,
+                           g.id AS genre_id, g.name AS genre_name,
+                           (SELECT COUNT(*) FROM likes WHERE film_id = f.id) AS like_count
                     FROM films f
+                    LEFT JOIN ratings r ON f.rating_id = r.id
                     LEFT JOIN film_directors fd ON f.id = fd.film_id
                     LEFT JOIN directors d ON fd.director_id = d.id
+                    LEFT JOIN film_genres fg ON fg.film_id = f.id
+                    LEFT JOIN genres g ON fg.genre_id = g.id
+                    WHERE LOWER(f.name) LIKE ? OR LOWER(d.name) LIKE ?
+                    ORDER BY like_count DESC
+                """;
+
+        return jdbcTemplate.query(query, new FilmWithDirectorsAndGenresExtractor(),
+                "%" + queryStr.toLowerCase() + "%", "%" + queryStr.toLowerCase() + "%");
+    }
+
+    private List<Film> searchFilmsDirector(String queryStr) {
+        String query = """
+                    SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
+                           r.id AS rating_id, r.name AS rating_name,
+                           d.id AS director_id, d.name AS director_name,
+                           g.id AS genre_id, g.name AS genre_name
+                    FROM films f
                     LEFT JOIN ratings r ON f.rating_id = r.id
-                    WHERE
-                """);
+                    LEFT JOIN film_directors fd ON f.id = fd.film_id
+                    LEFT JOIN directors d ON fd.director_id = d.id
+                    LEFT JOIN film_genres fg ON fg.film_id = f.id
+                    LEFT JOIN genres g ON fg.genre_id = g.id
+                    WHERE LOWER(d.name) LIKE ?
+                """;
 
-        List<Object> params = new ArrayList<>();
-        List<String> conditions = new ArrayList<>();
-        String searchPattern = "%" + query.toLowerCase() + "%";
+        List<Film> uniqueFilms = jdbcTemplate.query(query, new FilmWithDirectorsAndGenresExtractor(),
+                "%" + queryStr.toLowerCase() + "%").stream().distinct().toList();
 
-        if (requestParams.contains("title")) {
-            conditions.add("LOWER(f.name) LIKE LOWER(?)");
-            params.add(searchPattern);
-        }
-        if (requestParams.contains("director")) {
-            conditions.add("LOWER(d.name) LIKE LOWER(?)");
-            params.add(searchPattern);
-        }
+        return uniqueFilms;
+    }
 
-        sql.append(String.join(" OR ", conditions));
+    private List<Film> searchFilmsTitle(String queryStr) {
+        String query = """
+                    SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
+                           r.id AS rating_id, r.name AS rating_name,
+                           d.id AS director_id, d.name AS director_name,
+                           g.id AS genre_id, g.name AS genre_name
+                    FROM films f
+                    LEFT JOIN ratings r ON f.rating_id = r.id
+                    LEFT JOIN film_directors fd ON f.id = fd.film_id
+                    LEFT JOIN directors d ON fd.director_id = d.id
+                    LEFT JOIN film_genres fg ON fg.film_id = f.id
+                    LEFT JOIN genres g ON fg.genre_id = g.id
+                    WHERE LOWER(f.name) LIKE ?
+                """;
 
-        List<Film> films = jdbcTemplate.query(sql.toString(), filmRowMapper, params.toArray());
+        List<Film> uniqueFilms = jdbcTemplate.query(query, new FilmWithDirectorsAndGenresExtractor(),
+                "%" + queryStr.toLowerCase() + "%").stream().distinct().toList();
 
-        Map<Integer, List<Genre>> filmsGenres = getFilmsGenres();
-        Map<Integer, List<Director>> filmsDirectors = getFilmsDirectors();
-
-        for (Film film : films) {
-            film.getGenres().addAll(filmsGenres.getOrDefault(film.getId(), List.of()));
-            film.getDirectors().addAll(filmsDirectors.getOrDefault(film.getId(), List.of()));
-        }
-
-        return films;
+        return uniqueFilms;
     }
 
     public List<Film> getLikesUser(int id) {

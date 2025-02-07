@@ -4,10 +4,14 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.storage.BaseDbStorage;
 
+import java.sql.PreparedStatement;
+import java.sql.Statement;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
@@ -20,41 +24,36 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public Review postNewReview(Review review) {
-
         checkId(review.getFilmId(), "films", "id");
         checkId(review.getUserId(), "users", "id");
-
         String postReviewQuery = "INSERT INTO reviews (content, is_positive, user_id, film_id, useful) " +
                 "VALUES (?, ?, ?, ?, ?)";
-
-        int reviewId = insert(postReviewQuery, review.getContent(), review.getIsPositive(),
-                review.getUserId(), review.getFilmId(), 0);
-        review.setReviewId(reviewId);
-
+        KeyHolder keyHolder = new GeneratedKeyHolder();
+        jdbcTemplate.update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(postReviewQuery, Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1, review.getContent());
+            ps.setBoolean(2, review.getIsPositive());
+            ps.setInt(3, review.getUserId());
+            ps.setInt(4, review.getFilmId());
+            ps.setInt(5, 0);
+            return ps;
+        }, keyHolder);
+        review.setReviewId(keyHolder.getKey().intValue());
         return review;
     }
 
     public Review updateReview(Review updateReview) {
-
         checkId(updateReview.getReviewId(), "reviews", "id");
-        checkId(updateReview.getUserId(), "users", "id");
-        checkId(updateReview.getFilmId(), "films", "id");
 
-        String updateReviewQuery = "UPDATE reviews SET content = ?, is_positive = ?, user_id = ?, film_id = ? WHERE id = ?";
+        String updateReviewQuery = "UPDATE reviews SET content = ?, is_positive = ? WHERE id = ?";
 
-        update(updateReviewQuery, updateReview.getContent(), updateReview.getIsPositive(), updateReview.getUserId(),
-                updateReview.getFilmId(), updateReview.getReviewId());
+        update(updateReviewQuery, updateReview.getContent(), updateReview.getIsPositive(), updateReview.getReviewId());
 
-        return updateReview;
+        return getReviewById(updateReview.getReviewId());
     }
 
     public void deleteReviewById(int id) {
         checkId(id, "reviews", "id");
-        String deleteReviewQuery = """
-                DELETE FROM reviews
-                WHERE id = ?
-                """;
-        delete(deleteReviewQuery, id);
 
         String deleteLikesReviewQuery = """
                 DELETE FROM review_likes
@@ -67,6 +66,12 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
                 WHERE review_id = ?
                 """;
         delete(deleteDislikeReviewQuery, id);
+
+        String deleteReviewQuery = """
+                DELETE FROM reviews
+                WHERE id = ?
+                """;
+        delete(deleteReviewQuery, id);
     }
 
     public Review getReviewById(int id) {
@@ -85,20 +90,31 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
     }
 
     public List<Review> getAllReviewsByFilmId(int filmId, int count) {
-
         checkId(filmId, "films", "id");
 
         String getAllReviewsQuery = """
                     SELECT id, content, is_positive, user_id, film_id, useful
                     FROM reviews
                     WHERE film_id = ?
-                    GROUP BY useful
                     ORDER BY useful DESC
                     LIMIT ?
-                    """;
+                """;
 
         return findMany(getAllReviewsQuery, filmId, count);
     }
+
+
+    public List<Review> getAllReviews(int count) {
+        String getAllReviewsQuery = """
+                    SELECT id, content, is_positive, user_id, film_id, useful
+                    FROM reviews
+                    ORDER BY useful DESC
+                    LIMIT ?
+                """;
+
+        return findMany(getAllReviewsQuery, count);
+    }
+
 
     public void addLike(int reviewId, int userId) {
 
@@ -106,9 +122,9 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
         checkId(userId, "users", "id");
 
         String addLikeQuery = """
-            INSERT INTO review_likes (user_id, review_id)
-            VALUES (?, ?)
-            """;
+                INSERT INTO review_likes (user_id, review_id)
+                VALUES (?, ?)
+                """;
         try {
             jdbcTemplate.update(addLikeQuery, userId, reviewId);
         } catch (DataAccessException e) {
@@ -121,9 +137,9 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
         checkId(userId, "users", "id");
 
         String addDislikeQuery = """
-            INSERT INTO review_dislikes (user_id, review_id)
-            VALUES (?, ?)
-            """;
+                INSERT INTO review_dislikes (user_id, review_id)
+                VALUES (?, ?)
+                """;
 
         try {
             jdbcTemplate.update(addDislikeQuery, userId, reviewId);
@@ -138,9 +154,9 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
         checkId(userId, "users", "id");
 
         String deleteLikeQuery = """
-                    DELETE FROM review_likes
-                    WHERE user_id = ? AND review_id = ?
-                    """;
+                DELETE FROM review_likes
+                WHERE user_id = ? AND review_id = ?
+                """;
 
         if (!delete(deleteLikeQuery, userId, reviewId)) {
             throw new NoSuchElementException("Such a like does not exist.");
@@ -153,9 +169,9 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
         checkId(userId, "users", "id");
 
         String deleteLikeQuery = """
-                    DELETE FROM review_dislikes
-                    WHERE user_id = ? AND review_id = ?
-                    """;
+                DELETE FROM review_dislikes
+                WHERE user_id = ? AND review_id = ?
+                """;
 
         if (!delete(deleteLikeQuery, userId, reviewId)) {
             throw new NoSuchElementException("Such a dislike does not exist.");

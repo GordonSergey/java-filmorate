@@ -12,12 +12,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @Builder
 public class Review {
-    @NotNull
     private int reviewId;
-    @NotNull
     @NotBlank
     private String content;
-    @NotNull
     private Boolean isPositive;
     @NotNull
     private Integer userId;
