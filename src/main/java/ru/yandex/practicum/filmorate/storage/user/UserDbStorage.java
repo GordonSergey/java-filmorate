@@ -5,6 +5,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.mapper.EventRowMapper;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.FriendshipStatus;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.BaseDbStorage;
@@ -171,18 +173,9 @@ public class UserDbStorage extends BaseDbStorage<User> implements UserStorage {
     }
 
     @Override
-    public List<Map<String, Object>> getUserFeed(int userId) {
-        String sql = "SELECT user_id, entity_id, event_type, operation, timestamp " +
-                "FROM events WHERE user_id = ? ORDER BY timestamp ASC";
+    public List<Event> getUserFeed(int userId) {
+        String sql = "SELECT id, user_id, entity_id, event_type, operation, timestamp FROM events WHERE user_id = ? ORDER BY timestamp ASC";
 
-        return jdbcTemplate.query(sql, (rs, rowNum) -> {
-            Map<String, Object> event = new HashMap<>();
-            event.put("userId", rs.getInt("user_id"));
-            event.put("entityId", rs.getInt("entity_id"));
-            event.put("eventType", rs.getString("event_type"));
-            event.put("operation", rs.getString("operation"));
-            event.put("timestamp", rs.getLong("timestamp"));
-            return event;
-        }, userId);
+        return jdbcTemplate.query(sql, new EventRowMapper(), userId);
     }
 }

@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import ru.yandex.practicum.filmorate.model.Event;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.service.FriendService;
@@ -148,7 +149,7 @@ public class UserController {
     }
 
     @GetMapping("/{userId}/feed")
-    public ResponseEntity<List<Map<String, Object>>> getUserFeed(@PathVariable int userId) {
+    public ResponseEntity<List<Event>> getUserFeed(@PathVariable int userId) {
         if (!userStorage.existsUserById(userId)) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
         }
