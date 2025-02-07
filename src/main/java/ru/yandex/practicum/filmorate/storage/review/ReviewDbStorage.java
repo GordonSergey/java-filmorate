@@ -115,7 +115,6 @@ public class ReviewDbStorage extends BaseDbStorage<Review> {
         return findMany(getAllReviewsQuery, count);
     }
 
-
     public void addLike(int reviewId, int userId) {
 
         checkId(reviewId, "reviews", "id");

@@ -8,9 +8,6 @@ import ru.yandex.practicum.filmorate.exception.ErrorResponse;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.service.ReviewService;
 
-import java.util.NoSuchElementException;
-
-
 @RestController
 @RequestMapping("/reviews")
 public class ReviewController {
