@@ -1,7 +1,6 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import jakarta.validation.Valid;
-import jakarta.validation.ValidationException;
 import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,9 +15,7 @@ import ru.yandex.practicum.filmorate.service.FriendService;
 import ru.yandex.practicum.filmorate.service.UserService;
 import ru.yandex.practicum.filmorate.storage.user.UserStorage;
 
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 @Slf4j
@@ -33,42 +30,18 @@ public class UserController {
     private final UserStorage userStorage;
 
     @PostMapping
-    public ResponseEntity<?> addUser(@RequestBody @Valid User user) {
-        try {
-            User createdUser = userService.addUser(user);
-            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
-        } catch (ValidationException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unexpected error occurred"));
-        }
+    public ResponseEntity<User> addUser(@RequestBody @Valid User user) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.addUser(user));
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllUsers() {
-        try {
-            List<User> users = userService.getAllUsers();
-            if (users.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NO_CONTENT).body(Map.of("message", "No users available."));
-            }
-            return ResponseEntity.ok(users);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "An unexpected error occurred."));
-        }
+    public ResponseEntity<List<User>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @PutMapping
-    public ResponseEntity<?> updateUser(@Valid @RequestBody User user) {
-        try {
-            User updatedUser = userService.updateUser(user);
-            return ResponseEntity.ok(updatedUser);
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", ex.getMessage()));
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unexpected error occurred"));
-        }
+    public ResponseEntity<User> updateUser(@Valid @RequestBody User user) {
+        return ResponseEntity.ok(userService.updateUser(user));
     }
 
     @DeleteMapping("/{id}")
@@ -78,80 +51,48 @@ public class UserController {
     }
 
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getUser(@PathVariable @Positive int userId) {
-        try {
-            User user = userService.getUserById(userId)
-                    .orElseThrow(() -> new NoSuchElementException("User not found"));
-            return ResponseEntity.ok(user);
-        } catch (NoSuchElementException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unexpected error occurred"));
-        }
+    public ResponseEntity<User> getUser(@PathVariable @Positive int userId) {
+        return ResponseEntity.ok(userService.getUserById(userId)
+                .orElseThrow(() -> new NoSuchElementException("User not found")));
     }
 
     @PutMapping("/{userId}/friends/{friendId}")
-    public ResponseEntity<?> addFriend(@PathVariable @Positive int userId, @PathVariable @Positive int friendId) {
-        try {
-            if (!friendService.isUserExist(userId) || !friendService.isUserExist(friendId)) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User or friend not found"));
-            }
-            friendService.addFriend(userId, friendId);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unexpected error occurred"));
-        }
+    public ResponseEntity<Void> addFriend(@PathVariable int userId, @PathVariable int friendId) {
+        friendService.addFriend(userId, friendId);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{userId}/friends/{friendId}")
-    public ResponseEntity<?> removeFriend(@PathVariable @Positive int userId, @PathVariable @Positive int friendId) {
-        try {
-            if (!friendService.isUserExist(userId) || !friendService.isUserExist(friendId)) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User or friend not found"));
-            }
-            friendService.removeFriend(userId, friendId);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unexpected error occurred"));
-        }
+    public ResponseEntity<Void> removeFriend(@PathVariable @Positive int userId, @PathVariable @Positive int friendId) {
+        friendService.removeFriend(userId, friendId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/{userId}/friends")
-    public ResponseEntity<?> getFriends(@PathVariable @Positive int userId) {
-        try {
-            if (!friendService.isUserExist(userId)) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User not found"));
-            }
-            List<User> friends = friendService.getFriends(userId);
-            return ResponseEntity.ok(friends);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unexpected error occurred"));
+    public ResponseEntity<List<User>> getFriends(@PathVariable @Positive int userId) {
+        if (!friendService.isUserExist(userId)) {
+            throw new NoSuchElementException("User not found");
         }
+        return ResponseEntity.ok(friendService.getFriends(userId));
     }
 
     @GetMapping("/{userId}/friends/common/{otherId}")
-    public ResponseEntity<?> getCommonFriends(@PathVariable @Positive int userId, @PathVariable @Positive int otherId) {
-        try {
-            if (!friendService.isUserExist(userId) || !friendService.isUserExist(otherId)) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "One or both users not found"));
-            }
-            List<User> commonFriends = friendService.getCommonFriends(userId, otherId);
-            return ResponseEntity.ok(commonFriends);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unexpected error occurred"));
+    public ResponseEntity<List<User>> getCommonFriends(@PathVariable @Positive int userId, @PathVariable @Positive int otherId) {
+        if (!friendService.isUserExist(userId) || !friendService.isUserExist(otherId)) {
+            throw new NoSuchElementException("One or both users not found");
         }
+        return ResponseEntity.ok(friendService.getCommonFriends(userId, otherId));
     }
 
     @GetMapping("/{id}/recommendations")
-    public ResponseEntity<?> getRecommendations(@PathVariable @Positive int id) {
-        List<Film> recommendations = userService.findRecommendedFilms(id);
-        return ResponseEntity.ok(recommendations);
+    public ResponseEntity<List<Film>> getRecommendations(@PathVariable @Positive int id) {
+        return ResponseEntity.ok(userService.findRecommendedFilms(id));
     }
 
     @GetMapping("/{userId}/feed")
     public ResponseEntity<List<Event>> getUserFeed(@PathVariable int userId) {
         if (!userStorage.existsUserById(userId)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Collections.emptyList());
+            throw new NoSuchElementException("User not found");
         }
         return ResponseEntity.ok(userStorage.getUserFeed(userId));
     }

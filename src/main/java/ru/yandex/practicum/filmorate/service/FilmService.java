@@ -30,13 +30,26 @@ public class FilmService {
     private final MpaDbStorage mpaDbStorage;
     private final DirectorDbStorage directorDbStorage;
 
+    private static final String GET_COMMON_FILMS_QUERY = """
+            SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
+                   r.id AS rating_id, r.name AS rating_name,
+                   g.id AS genre_id, g.name AS genre_name,
+                   (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id) AS likes_count
+            FROM films f
+            JOIN likes l1 ON f.id = l1.film_id
+            JOIN likes l2 ON f.id = l2.film_id AND l1.user_id != l2.user_id
+            LEFT JOIN ratings r ON f.rating_id = r.id
+            LEFT JOIN film_genres fg ON f.id = fg.film_id
+            LEFT JOIN genres g ON fg.genre_id = g.id
+            WHERE l1.user_id = ? AND l2.user_id = ?
+            ORDER BY likes_count DESC;
+            """;
+
     public Film addFilm(Film film) {
         validateFilm(film);
         film.setGenres(removeDuplicateGenres(film.getGenres()));
-        List<Integer> ids = film.getGenres()
-                .stream()
-                .map(Genre::getId)
-                .toList();
+        List<Integer> ids = film.getGenres().stream().map(Genre::getId).toList();
+
         if (!genreDbStorage.existsGenresByIds(ids)) {
             throw new NoSuchElementException("Genre id not exists");
         }
@@ -93,28 +106,11 @@ public class FilmService {
     }
 
     public List<Film> getCommonFilms(int userId, int friendId) {
-        userStorage.getUserById(userId)
-                .orElseThrow(() -> new NoSuchElementException("User with ID " + userId + " not found."));
-        userStorage.getUserById(friendId)
-                .orElseThrow(() -> new NoSuchElementException("User with ID " + friendId + " not found."));
-
-        String query = """
-                SELECT f.id AS film_id, f.name AS film_name, f.description, f.release_date, f.duration,
-                       r.id AS rating_id, r.name AS rating_name,
-                       g.id AS genre_id, g.name AS genre_name,
-                       (SELECT COUNT(*) FROM likes l WHERE l.film_id = f.id) AS likes_count
-                FROM films f
-                JOIN likes l1 ON f.id = l1.film_id
-                JOIN likes l2 ON f.id = l2.film_id
-                LEFT JOIN ratings r ON f.rating_id = r.id
-                LEFT JOIN film_genres fg ON f.id = fg.film_id
-                LEFT JOIN genres g ON fg.genre_id = g.id
-                WHERE l1.user_id = ? AND l2.user_id = ?
-                ORDER BY likes_count DESC;
-                """;
+        userStorage.getUserById(userId).orElseThrow(() -> new NoSuchElementException("User with ID " + userId + " not found."));
+        userStorage.getUserById(friendId).orElseThrow(() -> new NoSuchElementException("User with ID " + friendId + " not found."));
 
         try {
-            return jdbcTemplate.query(query, new FilmWithGenresExtractor(), userId, friendId);
+            return jdbcTemplate.query(GET_COMMON_FILMS_QUERY, new FilmWithGenresExtractor(), userId, friendId);
         } catch (Exception e) {
             throw new RuntimeException("Unexpected database error occurred while fetching common films.");
         }
@@ -150,8 +146,6 @@ public class FilmService {
     }
 
     private List<Genre> removeDuplicateGenres(List<Genre> genres) {
-        return genres.stream()
-                .distinct()
-                .toList();
+        return genres.stream().distinct().toList();
     }
 }
