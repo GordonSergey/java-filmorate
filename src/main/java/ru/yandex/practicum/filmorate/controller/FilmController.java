@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import ru.yandex.practicum.filmorate.exception.ErrorResponse;
 import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.service.FilmService;
 
@@ -29,28 +28,13 @@ public class FilmController {
     }
 
     @PostMapping
-    public ResponseEntity<?> addFilm(@Valid @RequestBody Film film) {
-        try {
-            Film createdFilm = filmService.addFilm(film);
-            return new ResponseEntity<>(createdFilm, HttpStatus.CREATED);
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("Validation error", ex.getMessage()));
-        }
+    public ResponseEntity<Film> addFilm(@Valid @RequestBody Film film) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(filmService.addFilm(film));
     }
 
     @PutMapping
-    public ResponseEntity<?> updateFilm(@Valid @RequestBody Film film) {
-        try {
-            Film updatedFilm = filmService.updateFilm(film);
-            return ResponseEntity.ok(updatedFilm);
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("Validation error", ex.getMessage()));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ErrorResponse("Not found", ex.getMessage()));
-        }
+    public ResponseEntity<Film> updateFilm(@Valid @RequestBody Film film) {
+        return ResponseEntity.ok(filmService.updateFilm(film));
     }
 
     @DeleteMapping("/{id}")
@@ -60,14 +44,8 @@ public class FilmController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getFilmById(@PathVariable int id) {
-        try {
-            Film film = filmService.getFilmById(id);
-            return ResponseEntity.ok(film);
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ErrorResponse("Not found", ex.getMessage()));
-        }
+    public ResponseEntity<Film> getFilmById(@PathVariable int id) {
+        return ResponseEntity.ok(filmService.getFilmById(id));
     }
 
     @GetMapping
@@ -77,26 +55,15 @@ public class FilmController {
     }
 
     @PutMapping("/{filmId}/like/{userId}")
-    public ResponseEntity<?> addLike(@PathVariable int filmId, @PathVariable int userId) {
-        try {
-            filmService.addLike(filmId, userId);
-            return ResponseEntity.noContent().build();
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", ex.getMessage()));
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Unexpected error occurred."));
-        }
+    public ResponseEntity<Void> addLike(@PathVariable int filmId, @PathVariable int userId) {
+        filmService.addLike(filmId, userId);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}/like/{userId}")
-    public ResponseEntity<?> removeLike(@PathVariable int id, @PathVariable int userId) {
-        try {
-            filmService.removeLike(id, userId);
-            return ResponseEntity.ok().build();
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ErrorResponse("Not found", ex.getMessage()));
-        }
+    public ResponseEntity<Void> removeLike(@PathVariable int id, @PathVariable int userId) {
+        filmService.removeLike(id, userId);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/common")
@@ -116,24 +83,14 @@ public class FilmController {
     }
 
     @GetMapping("/director/{directorId}")
-    public ResponseEntity<?> getFilmsByDirector(@PathVariable int directorId, @RequestParam String sortBy) {
-        try {
-            return ResponseEntity.ok(filmService.getFilmsByDirector(directorId, sortBy));
-        } catch (NoSuchElementException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(new ErrorResponse("Not found", ex.getMessage()));
-        }
+    public ResponseEntity<List<Film>> getFilmsByDirector(@PathVariable int directorId, @RequestParam String sortBy) {
+        return ResponseEntity.ok(filmService.getFilmsByDirector(directorId, sortBy));
     }
 
     @GetMapping("/search")
     public ResponseEntity<List<Film>> searchFilms(
             @RequestParam(required = false) String query,
             @RequestParam(required = false) String by) {
-        try {
-            List<Film> films = filmService.searchFilms(query, by);
-            return ResponseEntity.ok(films);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.ok(Collections.emptyList());
-        }
+        return ResponseEntity.ok(filmService.searchFilms(query, by));
     }
 }

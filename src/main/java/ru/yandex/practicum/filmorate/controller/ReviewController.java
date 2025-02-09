@@ -4,7 +4,6 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import ru.yandex.practicum.filmorate.exception.ErrorResponse;
 import ru.yandex.practicum.filmorate.model.Review;
 import ru.yandex.practicum.filmorate.service.ReviewService;
 
@@ -19,13 +18,8 @@ public class ReviewController {
     }
 
     @PostMapping
-    public ResponseEntity<?> postNewReview(@Valid @RequestBody Review review) {
-        try {
-            return new ResponseEntity<>(reviewService.postNewReview(review), HttpStatus.CREATED);
-        } catch (IllegalArgumentException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(new ErrorResponse("Bad request", ex.getMessage()));
-        }
+    public ResponseEntity<Review> postNewReview(@Valid @RequestBody Review review) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(reviewService.postNewReview(review));
     }
 
     @PutMapping
@@ -34,9 +28,9 @@ public class ReviewController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteReviewById(@PathVariable int id) {
+    public ResponseEntity<Void> deleteReviewById(@PathVariable int id) {
         reviewService.deleteReviewById(id);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/{id}")
@@ -51,26 +45,26 @@ public class ReviewController {
     }
 
     @PutMapping("/{id}/like/{userId}")
-    public ResponseEntity<?> addLike(@PathVariable int id, @PathVariable int userId) {
+    public ResponseEntity<Void> addLike(@PathVariable int id, @PathVariable int userId) {
         reviewService.addLike(id, userId);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return ResponseEntity.ok().build();
     }
 
     @PutMapping("/{id}/dislike/{userId}")
-    public ResponseEntity<?> addDislike(@PathVariable int id, @PathVariable int userId) {
+    public ResponseEntity<Void> addDislike(@PathVariable int id, @PathVariable int userId) {
         reviewService.addDislike(id, userId);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}/like/{userId}")
-    public ResponseEntity<?> deleteLike(@PathVariable int id, @PathVariable int userId) {
+    public ResponseEntity<Void> deleteLike(@PathVariable int id, @PathVariable int userId) {
         reviewService.deleteLike(id, userId);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}/dislike/{userId}")
-    public ResponseEntity<?> deleteDislike(@PathVariable int id, @PathVariable int userId) {
+    public ResponseEntity<Void> deleteDislike(@PathVariable int id, @PathVariable int userId) {
         reviewService.deleteDislike(id, userId);
-        return new ResponseEntity<>(HttpStatus.OK);
+        return ResponseEntity.ok().build();
     }
 }
